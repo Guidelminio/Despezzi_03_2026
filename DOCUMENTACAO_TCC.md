@@ -1,10 +1,10 @@
-# 🏗️ Documentação de Engenharia de Software - Despezi
+#  Documentação de Engenharia de Software - Despezi
 
 Este documento foi elaborado por mim e pelo Lincoln para detalhar a arquitetura, a modelagem de dados e os requisitos do nosso TCC. Ele serve como base para a escrita da nossa monografia/relatório final.
 
 ---
 
-## 1. Arquitetura do Sistema (O Fluxo de Dados)
+## 1. Arquitetura do Sistema ( Fluxo de Dados)
 
 Decidimos utilizar uma arquitetura híbrida para demonstrar nosso domínio em diferentes tecnologias e otimizar o processamento matemático. O fluxo da informação funciona em 5 etapas:
 
@@ -16,7 +16,7 @@ Decidimos utilizar uma arquitetura híbrida para demonstrar nosso domínio em di
 
 ---
 
-## 2. Modelagem do Banco de Dados (DER Lógico)
+## 2. Modelagem do Banco de Dados (MER Lógico)
 
 Utilizamos o SQLite. A estrutura atual conta com 3 tabelas principais:
 
