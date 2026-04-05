@@ -1,26 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const { user, token } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setStats(data));
+    if (user?.role !== 'admin') {
+      fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => setStats(data));
 
-    fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setTransactions(data.slice(0, 5))); // Get last 5
-  }, [token]);
+      fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setTransactions(data.slice(0, 5));
+          } else {
+            setTransactions([]);
+          }
+        })
+        .catch(() => setTransactions([]));
+
+      fetch('/api/goals', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setGoals(data);
+          }
+        })
+        .catch(() => setGoals([]));
+    }
+  }, [token, user]);
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" />;
+  }
 
   // Use real chart data from stats or fallback to empty array
-  const chartData = stats?.chartData || [];
+  const chartData = Array.isArray(stats?.chartData) ? stats.chartData : [];
+  
+  const currentMonthExpenses = stats?.currentMonthCategoryExpenses || {};
+  
+  const alerts = goals.map(goal => {
+    const spent = currentMonthExpenses[goal.category] || 0;
+    const percentage = (spent / goal.amount) * 100;
+    if (percentage >= 100) {
+      return { category: goal.category, type: 'exceeded', message: `Você excedeu sua meta de gastos para ${goal.category}!` };
+    } else if (percentage >= 80) {
+      return { category: goal.category, type: 'warning', message: `Atenção: Você já utilizou ${percentage.toFixed(0)}% da sua meta para ${goal.category}.` };
+    }
+    return null;
+  }).filter(Boolean);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -41,12 +77,15 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {stats?.processedBy === 'None' && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 flex items-center gap-3 text-amber-800 dark:text-amber-400">
-          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <p className="text-sm font-medium">
-            Os cálculos matemáticos estão aguardando o processamento do script Python externo.
-          </p>
+      {alerts.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {alerts.map((alert: any, i) => (
+            <div key={i} className={`flex items-center gap-3 p-4 rounded-xl border ${alert.type === 'exceeded' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'}`}>
+              <AlertTriangle size={20} className="shrink-0" />
+              <p className="text-sm font-medium">{alert.message}</p>
+              <Link to="/goals" className="ml-auto text-sm underline font-semibold">Ver Metas</Link>
+            </div>
+          ))}
         </div>
       )}
 
@@ -88,7 +127,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 shadow-sm p-6">
-          <h3 className="text-lg font-bold mb-6">Fluxo de Caixa</h3>
+          <h3 className="text-lg font-bold mb-6">Fluxo de Caixa (Por Transação)</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -103,6 +142,18 @@ export default function Dashboard() {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1a3324', borderColor: '#2a4a35', color: '#fff' }}
                   itemStyle={{ color: '#13ec5b' }}
+                  labelStyle={{ color: '#888888', marginBottom: '4px' }}
+                  formatter={(value: any, name: string, props: any) => {
+                    if (name === 'value') return [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Saldo'];
+                    return [value, name];
+                  }}
+                  labelFormatter={(label, payload) => {
+                    if (payload && payload.length > 0) {
+                      const data = payload[0].payload;
+                      return `${label} - ${data.description || 'Transação'}`;
+                    }
+                    return label;
+                  }}
                 />
                 <Area type="monotone" dataKey="value" stroke="#13ec5b" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>

@@ -2,7 +2,7 @@
 
 **Projeto de Trabalho de Conclusão de Curso (TCC)**
 **Curso:** Técnico em Informática Integrado
-**Desenvolvedores:** Guilherme e Lincoln
+**Desenvolvedores:** [Seu Nome] e Lincoln
 
 ---
 

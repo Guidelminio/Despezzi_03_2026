@@ -1,18 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Users, CreditCard, DollarSign } from 'lucide-react';
+import { Users, CreditCard, DollarSign, Trash2, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function AdminDashboard() {
   const { token, user } = useAuth();
   const [stats, setStats] = useState<any>(null);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchStats = () => {
     if (user?.role === 'admin') {
       fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
-        .then(data => setStats(data));
+        .then(data => setStats(data))
+        .catch(() => setStats(null));
     }
+  };
+
+  useEffect(() => {
+    fetchStats();
   }, [token, user]);
+
+  const handleDeleteUser = async () => {
+    if (userToDelete === null) return;
+    
+    try {
+      const res = await fetch(`/api/admin/users/${userToDelete}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        toast.success('Usuário excluído com sucesso!');
+        fetchStats();
+      } else {
+        toast.error('Erro ao excluir usuário.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Ocorreu um erro inesperado.');
+    } finally {
+      setUserToDelete(null);
+    }
+  };
 
   if (user?.role !== 'admin') {
     return <div className="p-8 text-center text-red-500">Acesso negado.</div>;
@@ -72,25 +103,41 @@ export default function AdminDashboard() {
                 <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">ID</th>
                 <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">Nome</th>
                 <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">E-mail</th>
-                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">Status</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-right">Transações</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-right">Saldo</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {stats?.users?.length === 0 ? (
+              {!Array.isArray(stats?.users) || stats.users.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500">Nenhum usuário encontrado.</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhum usuário encontrado.</td>
                 </tr>
               ) : (
-                stats?.users?.map((u: any) => (
+                stats.users.map((u: any) => (
                   <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4 text-slate-500">#{u.id}</td>
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{u.name}</td>
                     <td className="px-6 py-4 text-slate-500">{u.email}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        Ativo
-                      </span>
+                    <td className="px-6 py-4 text-right font-medium">{u.transactionCount || 0}</td>
+                    <td className={`px-6 py-4 text-right font-bold ${(u.balance || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      R$ {(u.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-6 py-4 text-center flex justify-center gap-2">
+                      <Link 
+                        to={`/admin/users/${u.id}/transactions`}
+                        className="text-slate-400 hover:text-blue-500 transition-colors p-1"
+                        title="Gerenciar Transações"
+                      >
+                        <Edit size={18} />
+                      </Link>
+                      <button 
+                        onClick={() => setUserToDelete(u.id)} 
+                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                        title="Excluir Usuário"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -99,6 +146,15 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={userToDelete !== null}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={handleDeleteUser}
+        title="Excluir Usuário"
+        message="Tem certeza que deseja excluir este usuário e TODAS as suas transações? Esta ação não pode ser desfeita."
+        confirmText="Excluir Usuário"
+      />
     </div>
   );
 }

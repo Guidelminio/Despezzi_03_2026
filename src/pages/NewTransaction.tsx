@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 export default function NewTransaction() {
   const [searchParams] = useSearchParams();
@@ -14,12 +15,17 @@ export default function NewTransaction() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numericAmount = parseFloat(amount.replace(',', '.'));
-    if (isNaN(numericAmount)) return alert('Valor inválido');
+    if (isNaN(numericAmount)) {
+      toast.error('Valor inválido');
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       const res = await fetch('/api/transactions', {
         method: 'POST',
@@ -37,10 +43,16 @@ export default function NewTransaction() {
         })
       });
       if (res.ok) {
-        navigate('/');
+        toast.success(type === 'income' ? 'Receita adicionada com sucesso!' : 'Despesa adicionada com sucesso!');
+        navigate('/dashboard');
+      } else {
+        toast.error('Erro ao salvar a transação.');
       }
     } catch (error) {
       console.error(error);
+      toast.error('Ocorreu um erro inesperado.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,11 +176,18 @@ export default function NewTransaction() {
           </div>
 
           <div className="pt-6 flex gap-4">
-            <button type="button" onClick={() => navigate(-1)} className="flex-1 py-3 rounded-lg border border-slate-300 dark:border-slate-600 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <button type="button" onClick={() => navigate(-1)} disabled={isSubmitting} className="flex-1 py-3 rounded-lg border border-slate-300 dark:border-slate-600 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               Cancelar
             </button>
-            <button type="submit" className="flex-1 py-3 rounded-lg bg-primary hover:bg-primary-hover text-slate-900 font-bold transition-colors">
-              Salvar
+            <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-lg bg-primary hover:bg-primary-hover text-slate-900 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                  Salvando...
+                </>
+              ) : (
+                'Salvar'
+              )}
             </button>
           </div>
         </form>

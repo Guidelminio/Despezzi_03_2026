@@ -22,7 +22,7 @@ export default function Login() {
       const data = await res.json();
       if (res.ok) {
         login(data.token, data.user);
-        navigate('/');
+        navigate('/dashboard');
       } else {
         setError(data.error || 'Erro ao fazer login');
       }
