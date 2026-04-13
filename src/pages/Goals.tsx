@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Target, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Target, Plus, Trash2, AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import { motion } from 'motion/react';
 
 export default function Goals() {
   const { token } = useAuth();
@@ -133,7 +134,11 @@ export default function Goals() {
       </header>
 
       {isAdding && (
-        <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-hidden"
+        >
           <h3 className="text-lg font-bold mb-4">Adicionar ou Atualizar Meta</h3>
           <form onSubmit={handleSaveGoal} className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
@@ -168,7 +173,7 @@ export default function Goals() {
               Salvar Meta
             </button>
           </form>
-        </div>
+        </motion.div>
       )}
 
       <div className="grid grid-cols-1 gap-4">
@@ -188,7 +193,7 @@ export default function Goals() {
             </button>
           </div>
         ) : (
-          goals.map(goal => {
+          goals.map((goal, index) => {
             const categoryLabel = categories.find(c => c.id === goal.category)?.label || goal.category;
             const spent = currentMonthExpenses[goal.category] || 0;
             const percentage = Math.min((spent / goal.amount) * 100, 100);
@@ -197,28 +202,45 @@ export default function Goals() {
             let textColor = 'text-green-600 dark:text-green-400';
             let StatusIcon = CheckCircle2;
             let statusText = 'Dentro da meta';
+            let isExceeded = false;
+            let isPerfect = false;
             
             if (spent > goal.amount) {
               statusColor = 'bg-red-500';
               textColor = 'text-red-600 dark:text-red-400';
               StatusIcon = AlertTriangle;
               statusText = 'Meta excedida!';
+              isExceeded = true;
             } else if (percentage >= 80) {
               statusColor = 'bg-yellow-500';
               textColor = 'text-yellow-600 dark:text-yellow-400';
               StatusIcon = AlertTriangle;
               statusText = 'Atenção: Próximo ao limite';
+            } else if (percentage < 30 && spent > 0) {
+              isPerfect = true;
+              StatusIcon = PartyPopper;
+              statusText = 'Excelente economia!';
             }
 
             return (
-              <div key={goal.id} className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
+              <motion.div 
+                key={goal.id} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                className={`bg-surface-light dark:bg-surface-dark rounded-xl border ${isExceeded ? 'border-red-500/50 shadow-red-500/10' : 'border-slate-200 dark:border-slate-800'} p-6 shadow-sm relative overflow-hidden`}
+              >
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold capitalize">{categoryLabel}</h3>
-                    <div className={`flex items-center gap-1.5 text-sm font-medium mt-1 ${textColor}`}>
-                      <StatusIcon size={16} />
+                    <motion.div 
+                      animate={isExceeded ? { x: [-2, 2, -2, 2, 0] } : {}}
+                      transition={{ duration: 0.4, repeat: isExceeded ? Infinity : 0, repeatDelay: 3 }}
+                      className={`flex items-center gap-1.5 text-sm font-medium mt-1 ${textColor}`}
+                    >
+                      <StatusIcon size={16} className={isPerfect ? 'text-yellow-500' : ''} />
                       <span>{statusText}</span>
-                    </div>
+                    </motion.div>
                   </div>
                   <button 
                     onClick={() => setGoalToDelete(goal.category)}
@@ -234,16 +256,18 @@ export default function Goals() {
                   <span className="text-slate-500 font-medium">Meta: {formatCurrency(goal.amount)}</span>
                 </div>
                 
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-1">
-                  <div 
-                    className={`${statusColor} h-3 rounded-full transition-all duration-500`} 
-                    style={{ width: `${percentage}%` }}
-                  ></div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-1 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className={`${statusColor} h-3 rounded-full`} 
+                  />
                 </div>
                 <div className="text-right text-xs text-slate-500 font-medium">
                   {percentage.toFixed(1)}% utilizado
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}

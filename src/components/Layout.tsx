@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import QuickAddModal from './QuickAddModal';
 import { 
   LayoutDashboard, 
   ArrowDownCircle, 
@@ -11,26 +12,24 @@ import {
   PieChart, 
   Settings, 
   LogOut,
-  Menu,
-  Bell,
   Target,
   Sun,
-  Moon
+  Moon,
+  Plus
 } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-    const navItems = user?.role === 'admin' 
+  const navItems = user?.role === 'admin' 
     ? [
-        { path: '/admin', icon: Settings, label: 'Painel Admin' }
+        { path: '/admin', icon: Settings, label: 'Admin' }
       ]
     : [
-        { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/transactions', icon: ArrowDownCircle, label: 'Transações' },
+        { path: '/dashboard', icon: LayoutDashboard, label: 'Início' },
+        { path: '/transactions', icon: ArrowDownCircle, label: 'Extrato' },
         { path: '/reports', icon: PieChart, label: 'Relatórios' },
         { path: '/goals', icon: Target, label: 'Metas' },
       ];
@@ -42,8 +41,10 @@ export default function Layout() {
   return (
     <div className="flex h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden">
       <Toaster position="top-right" richColors closeButton theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark transition-transform duration-300 md:relative md:translate-x-0 flex flex-col justify-between ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <QuickAddModal />
+      
+      {/* Sidebar (Desktop) */}
+      <aside className="hidden md:flex flex-col justify-between w-64 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-50">
         <div className="p-6 flex-1 overflow-y-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="bg-primary rounded-full w-10 h-10 flex items-center justify-center text-slate-900 shadow-sm">
@@ -54,6 +55,17 @@ export default function Layout() {
               <p className="text-slate-500 dark:text-slate-400 text-xs font-normal">Gestão Financeira</p>
             </div>
           </div>
+
+          {user?.role !== 'admin' && (
+            <button 
+              onClick={() => window.dispatchEvent(new CustomEvent('open-quick-add'))}
+              className="w-full mb-6 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-slate-900 px-4 py-3 rounded-xl font-bold transition-all shadow-sm shadow-primary/20"
+            >
+              <Plus size={20} />
+              Nova Transação
+            </button>
+          )}
+
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -62,15 +74,21 @@ export default function Layout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     isActive 
-                      ? 'bg-primary/15 text-green-800 dark:text-primary font-semibold' 
+                      ? 'text-green-800 dark:text-primary font-semibold' 
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                   }`}
                 >
-                  <Icon size={20} className={isActive ? 'text-green-700 dark:text-primary' : ''} />
-                  <span className="text-sm">{item.label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute inset-0 bg-primary/15 rounded-lg"
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  <Icon size={20} className={`relative z-10 ${isActive ? 'text-green-700 dark:text-primary' : ''}`} />
+                  <span className="relative z-10 text-sm">{item.label}</span>
                 </Link>
               );
             })}
@@ -102,18 +120,23 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative pb-16 md:pb-0">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark">
+        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-10">
           <div className="flex items-center gap-2">
             <div className="bg-primary w-8 h-8 rounded-lg flex items-center justify-center text-slate-900">
               <LayoutDashboard size={16} />
             </div>
             <span className="font-bold">Despezi</span>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            <Menu size={24} />
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={toggleTheme} className="text-slate-500">
+              {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button onClick={logout} className="text-slate-500 hover:text-red-500">
+              <LogOut size={20} />
+            </button>
+          </div>
         </header>
         
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
@@ -131,14 +154,58 @@ export default function Layout() {
           </AnimatePresence>
         </main>
       </div>
-      
-      {/* Mobile overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+
+      {/* Bottom Navigation Bar (Mobile) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 pb-safe z-50 h-16">
+        {navItems.map((item, idx) => {
+          const isActive = location.pathname === item.path;
+          const Icon = item.icon;
+          
+          // Insert Quick Add FAB in the middle
+          if (idx === Math.floor(navItems.length / 2)) {
+            return (
+              <React.Fragment key="quick-add">
+                <button 
+                  className="relative -top-5 bg-primary text-slate-900 p-4 rounded-full shadow-lg shadow-primary/30 transform transition-transform active:scale-95"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-quick-add'))}
+                >
+                  <Plus size={24} className="font-bold" />
+                </button>
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex flex-col items-center justify-center w-16 h-full gap-1 ${
+                    isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Icon size={20} className={isActive ? 'text-primary' : ''} />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </Link>
+              </React.Fragment>
+            );
+          }
+
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 relative ${
+                isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-active"
+                  className="absolute top-0 w-8 h-1 bg-primary rounded-b-full"
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                />
+              )}
+              <Icon size={20} className={isActive ? 'text-primary' : ''} />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

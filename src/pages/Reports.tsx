@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { PieChart, BarChart, Activity, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { PieChart, BarChart, Activity, DollarSign, TrendingUp, TrendingDown, Download } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Reports() {
   const { token } = useAuth();
@@ -29,11 +30,75 @@ export default function Reports() {
   const categoryData = stats?.categoryExpenses ? Object.entries(stats.categoryExpenses).sort((a: any, b: any) => b[1] - a[1]) : [];
   const maxCategoryValue = categoryData.length > 0 ? (categoryData[0] as any)[1] : 1;
 
+  const exportSummaryToCSV = () => {
+    if (!stats) {
+      toast.error('Não há dados para exportar.');
+      return;
+    }
+
+    const csvRows = [];
+    
+    // Resumo Geral
+    csvRows.push('RESUMO GERAL');
+    csvRows.push('Saldo Total,Total Receitas,Total Despesas');
+    csvRows.push([
+      stats.balance.toString().replace('.', ','),
+      stats.totalIncome.toString().replace('.', ','),
+      stats.totalExpense.toString().replace('.', ',')
+    ].join(','));
+    
+    csvRows.push(''); // Linha em branco
+    
+    // Despesas por Categoria
+    csvRows.push('DESPESAS POR CATEGORIA');
+    csvRows.push('Categoria,Valor Total');
+    categoryData.forEach(([category, amount]: any) => {
+      csvRows.push(`"${category}",${amount.toString().replace('.', ',')}`);
+    });
+    
+    csvRows.push(''); // Linha em branco
+    
+    // Evolução Mensal
+    if (stats.monthlyChartData && stats.monthlyChartData.length > 0) {
+      csvRows.push('EVOLUÇÃO MENSAL (Últimos 6 meses)');
+      csvRows.push('Mês,Receitas,Despesas,Saldo Líquido');
+      stats.monthlyChartData.forEach((data: any) => {
+        csvRows.push([
+          `"${data.name}"`,
+          data.income.toString().replace('.', ','),
+          data.expense.toString().replace('.', ','),
+          data.value.toString().replace('.', ',')
+        ].join(','));
+      });
+    }
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `resumo_financeiro_despezi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Resumo exportado com sucesso!');
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Relatórios</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Análise detalhada das suas finanças.</p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Relatórios</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Análise detalhada das suas finanças.</p>
+        </div>
+        <button 
+          onClick={exportSummaryToCSV}
+          className="inline-flex items-center justify-center gap-2 bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Download size={16} />
+          Exportar Resumo (CSV)
+        </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

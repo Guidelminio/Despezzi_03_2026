@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { TrendingUp, TrendingDown, Trash2, Filter, ArrowUpDown, Inbox } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2, Filter, ArrowUpDown, Inbox, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import { motion } from 'motion/react';
 
 export default function Transactions() {
   const { token } = useAuth();
@@ -39,6 +40,11 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions();
+    
+    // Listen for quick add
+    const handleAdd = () => fetchTransactions();
+    window.addEventListener('transaction-added', handleAdd);
+    return () => window.removeEventListener('transaction-added', handleAdd);
   }, [token]);
 
   const handleDelete = async () => {
@@ -93,11 +99,54 @@ export default function Transactions() {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
+  const exportToCSV = () => {
+    if (filteredAndSortedTransactions.length === 0) {
+      toast.error('Não há transações para exportar.');
+      return;
+    }
+
+    const headers = ['Data', 'Descrição', 'Categoria', 'Tipo', 'Método de Pagamento', 'Valor'];
+    const csvRows = [headers.join(',')];
+
+    filteredAndSortedTransactions.forEach(t => {
+      const date = new Date(t.date).toLocaleDateString('pt-BR');
+      const description = `"${t.description.replace(/"/g, '""')}"`;
+      const category = `"${t.category}"`;
+      const typeStr = t.type === 'income' ? 'Receita' : 'Despesa';
+      const method = `"${formatMethod(t.payment_method)}"`;
+      const amount = t.amount.toString().replace('.', ',');
+
+      csvRows.push([date, description, category, typeStr, method, amount].join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    // Add BOM so Excel reads UTF-8 correctly
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `transacoes_despezi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Relatório exportado com sucesso!');
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Transações</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Histórico completo das suas movimentações financeiras.</p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Transações</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Histórico completo das suas movimentações financeiras.</p>
+        </div>
+        <button 
+          onClick={exportToCSV}
+          className="inline-flex items-center justify-center gap-2 bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Download size={16} />
+          Exportar CSV
+        </button>
       </header>
 
       <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-end">
@@ -200,8 +249,14 @@ export default function Transactions() {
                   </td>
                 </tr>
               ) : (
-                filteredAndSortedTransactions.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                filteredAndSortedTransactions.map((t, index) => (
+                  <motion.tr 
+                    key={t.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                       {new Date(t.date).toLocaleDateString('pt-BR')}
                     </td>
@@ -227,7 +282,7 @@ export default function Transactions() {
                         <Trash2 size={18} />
                       </button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               )}
             </tbody>
