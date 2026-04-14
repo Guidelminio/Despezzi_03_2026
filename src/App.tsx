@@ -8,19 +8,21 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import NewTransaction from './pages/NewTransaction';
-import Transactions from './pages/Transactions';
+import Entrar from './pages/Entrar';
+import Cadastrar from './pages/Cadastrar';
+import Painel from './pages/Painel';
+import NovaTransacao from './pages/NovaTransacao';
+import Transacoes from './pages/Transacoes';
 import AdminDashboard from './pages/AdminDashboard';
-import Reports from './pages/Reports';
-import Goals from './pages/Goals';
+import Relatorios from './pages/Relatorios';
+import Metas from './pages/Metas';
 import AdminUserTransactions from './pages/AdminUserTransactions';
 import AdminTransactionForm from './pages/AdminTransactionForm';
-import Landing from './pages/Landing';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import Inicio from './pages/Inicio';
+import EsqueciSenha from './pages/EsqueciSenha';
+import RedefinirSenha from './pages/RedefinirSenha';
+import PezzyIA from './pages/PezzyIA';
+import PerfilInvestidor from './pages/PerfilInvestidor';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -32,17 +34,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/" element={<Inicio />} />
+      <Route path="/login" element={<Entrar />} />
+      <Route path="/register" element={<Cadastrar />} />
+      <Route path="/forgot-password" element={<EsqueciSenha />} />
+      <Route path="/reset-password" element={<RedefinirSenha />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="transactions" element={<Transactions />} />
-        <Route path="transactions/new" element={<NewTransaction />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="goals" element={<Goals />} />
+        <Route path="dashboard" element={<Painel />} />
+        <Route path="transactions" element={<Transacoes />} />
+        <Route path="transactions/new" element={<NovaTransacao />} />
+        <Route path="reports" element={<Relatorios />} />
+        <Route path="goals" element={<Metas />} />
+        <Route path="ai" element={<PezzyIA />} />
+        <Route path="perfil-investidor" element={<PerfilInvestidor />} />
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users/:id/transactions" element={<AdminUserTransactions />} />
         <Route path="admin/users/:id/transactions/new" element={<AdminTransactionForm />} />

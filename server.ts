@@ -402,6 +402,94 @@ async function startServer() {
     });
   });
 
+  // User Profile Route
+  app.post('/api/users/profile', requireAuth, (req, res) => {
+    try {
+      const userId = (req as any).userId;
+      const { profile } = req.body;
+      db.prepare('UPDATE users SET investor_profile = ? WHERE id = ?').run(profile, userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao salvar perfil' });
+    }
+  });
+
+  // AI Chat Route
+  app.post('/api/ai/chat', requireAuth, async (req, res) => {
+    try {
+      const userId = (req as any).userId;
+      const { message } = req.body;
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY não configurada.' });
+      }
+
+      // Gather user data for context
+      const user = db.prepare('SELECT name, email, investor_profile FROM users WHERE id = ?').get(userId) as any;
+      const transactions = db.prepare('SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 50').all(userId) as any[];
+      const goals = db.prepare('SELECT * FROM spending_goals WHERE user_id = ?').all(userId) as any[];
+      
+      // Calculate basic stats
+      let balance = 0;
+      let totalIncome = 0;
+      let totalExpense = 0;
+      transactions.forEach(t => {
+        if (t.type === 'income') {
+          balance += t.amount;
+          totalIncome += t.amount;
+        } else {
+          balance -= t.amount;
+          totalExpense += t.amount;
+        }
+      });
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      const systemInstruction = `Você é o Pezzy AI, o mascote porquinho e assistente financeiro inteligente do aplicativo Despezi.
+Você é super amigável, encorajador, usa emojis e dá conselhos práticos e realistas sobre finanças.
+O nome do usuário é ${user?.name || 'Usuário'}.
+
+DADOS FINANCEIROS ATUAIS DO USUÁRIO (Baseado nas últimas 50 transações):
+- Saldo Atual Calculado: R$ ${balance.toFixed(2)}
+- Total de Receitas (recente): R$ ${totalIncome.toFixed(2)}
+- Total de Despesas (recente): R$ ${totalExpense.toFixed(2)}
+- Metas definidas: ${JSON.stringify(goals)}
+- Perfil de Investidor: ${user?.investor_profile || 'Não definido (sugira que ele faça o quiz em /perfil-investidor)'}
+- Últimas transações: ${JSON.stringify(transactions.slice(0, 15))}
+
+DIRETRIZES:
+1. Responda à pergunta do usuário com base nesses dados.
+2. Seja conciso, direto e prestativo. Não escreva textos gigantescos.
+3. Formate sua resposta em Markdown (use negrito, listas, etc para facilitar a leitura).
+4. Se o usuário perguntar se pode comprar algo, analise o saldo atual e as despesas e dê um conselho realista (ex: "Você tem saldo, mas isso comprometeria 50% do que você tem. Que tal parcelar ou esperar o próximo mês?").
+5. Sugira metas ou investimentos de forma educativa, lembrando que você é um assistente e não um consultor financeiro oficial.
+6. Se o usuário pedir dicas de investimento, leve em conta o Perfil de Investidor dele. Se for conservador, sugira renda fixa. Se for arrojado, sugira renda variável.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: message,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.7
+        }
+      });
+
+      res.json({ reply: response.text });
+    } catch (error: any) {
+      console.error('AI Chat Error:', error);
+      
+      // Handle specific Gemini API errors
+      if (error?.message?.includes('API key not valid') || error?.status === 400) {
+        return res.status(400).json({ 
+          error: 'Chave da API do Gemini inválida. Por favor, verifique as configurações do projeto (Settings > Secrets) e insira uma GEMINI_API_KEY válida.' 
+        });
+      }
+      
+      res.status(500).json({ error: 'Erro ao processar a resposta da IA.' });
+    }
+  });
+
   // Admin Routes
   app.get('/api/admin/stats', requireAuth, (req, res) => {
     const userId = (req as any).userId;

@@ -15,7 +15,9 @@ import {
   Target,
   Sun,
   Moon,
-  Plus
+  Plus,
+  PiggyBank,
+  TrendingUp
 } from 'lucide-react';
 
 export default function Layout() {
@@ -28,10 +30,12 @@ export default function Layout() {
         { path: '/admin', icon: Settings, label: 'Admin' }
       ]
     : [
-        { path: '/dashboard', icon: LayoutDashboard, label: 'Início' },
-        { path: '/transactions', icon: ArrowDownCircle, label: 'Extrato' },
+        { path: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
+        { path: '/transactions', icon: ArrowDownCircle, label: 'Transações' },
         { path: '/reports', icon: PieChart, label: 'Relatórios' },
         { path: '/goals', icon: Target, label: 'Metas' },
+        { path: '/ai', icon: PiggyBank, label: 'Pezzy IA' },
+        { path: '/perfil-investidor', icon: TrendingUp, label: 'Perfil' },
       ];
 
   const toggleTheme = () => {

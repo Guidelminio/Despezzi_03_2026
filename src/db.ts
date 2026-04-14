@@ -10,7 +10,8 @@ db.exec(`
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    investor_profile TEXT
   );
 
   CREATE TABLE IF NOT EXISTS transactions (
@@ -57,6 +58,12 @@ db.exec(`
 // Add role column if it doesn't exist (for existing databases)
 try {
   db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+} catch (e) {
+  // Column likely already exists
+}
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN investor_profile TEXT");
 } catch (e) {
   // Column likely already exists
 }

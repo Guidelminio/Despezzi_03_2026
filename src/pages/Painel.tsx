@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, AlertTriangle } from 'lucide-react';
@@ -9,6 +9,26 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }, []);
+
+  const subtitle = useMemo(() => {
+    const subtitles = [
+      "Aqui está a visão geral das suas finanças hoje.",
+      "Pronto para assumir o controle do seu dinheiro?",
+      "Vamos fazer o seu dinheiro render mais hoje?",
+      "Acompanhe seus gastos e fique mais perto dos seus sonhos.",
+      "Um passo de cada vez rumo à independência financeira.",
+      "Seu planejamento financeiro está em dia?",
+      "Organize suas finanças, transforme sua vida."
+    ];
+    return subtitles[Math.floor(Math.random() * subtitles.length)];
+  }, []);
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -62,8 +82,8 @@ export default function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Bom dia, {user?.name?.split(' ')[0]}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Aqui está a visão geral das suas finanças hoje.</p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{greeting}, {user?.name?.split(' ')[0]}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">{subtitle}</p>
         </div>
         <div className="flex gap-3">
           <Link to="/transactions/new?type=income" className="flex items-center gap-2 bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
