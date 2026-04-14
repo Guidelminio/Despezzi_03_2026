@@ -57,9 +57,34 @@ export default function Register() {
     }
   };
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validatePassword = (pass: string) => {
+    // Pelo menos 8 caracteres, uma letra e um número
+    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (name.trim().length < 3) {
+      setError('O nome deve ter pelo menos 3 caracteres.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Por favor, insira um e-mail válido.');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('A senha deve ter pelo menos 8 caracteres, incluindo pelo menos uma letra e um número.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',

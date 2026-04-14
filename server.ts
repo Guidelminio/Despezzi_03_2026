@@ -26,6 +26,19 @@ async function startServer() {
   // Auth Routes
   app.post('/api/auth/register', (req, res) => {
     const { name, email, password } = req.body;
+
+    if (!name || name.trim().length < 3) {
+      return res.status(400).json({ error: 'Nome inválido' });
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'E-mail inválido' });
+    }
+
+    if (!password || !/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
+      return res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres, incluindo letras e números' });
+    }
+
     try {
       const stmt = db.prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
       const info = stmt.run(name, email, password); // In real app, hash password!

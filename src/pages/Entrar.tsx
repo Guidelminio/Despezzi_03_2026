@@ -56,9 +56,24 @@ export default function Login() {
     }
   };
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!validateEmail(email)) {
+      setError('Por favor, insira um e-mail válido.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
