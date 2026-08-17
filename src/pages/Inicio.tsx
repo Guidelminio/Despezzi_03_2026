@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, PieChart, ShieldCheck, TrendingUp, Smartphone, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, PieChart, ShieldCheck, TrendingUp, Smartphone, ArrowRight, CheckCircle2, PiggyBank } from 'lucide-react';
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -51,8 +51,85 @@ export default function Landing() {
             
             <div className="mt-16 relative max-w-5xl mx-auto">
               <div className="absolute -inset-1 bg-gradient-to-r from-primary to-green-600 rounded-2xl blur opacity-20"></div>
-              <div className="relative bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" alt="Dashboard Preview" className="rounded-xl w-full object-cover aspect-video opacity-90" referrerPolicy="no-referrer" />
+              <div className="relative bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-8 shadow-2xl flex flex-col md:flex-row items-center gap-8 overflow-hidden">
+                
+                {/* Pezzy Mascot Area */}
+                <div className="flex-shrink-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/20 to-green-600/10 rounded-3xl border border-primary/30 relative">
+                  <div className="absolute -top-4 -right-4 bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-2xl py-2 px-4 shadow-xl">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                      Olá! Eu sou o <span className="text-primary font-bold">Pezzy</span> 🐷✨
+                    </p>
+                  </div>
+                  <div className="w-32 h-32 md:w-48 md:h-48 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                    <PiggyBank className="w-20 h-20 md:w-32 md:h-32 text-primary drop-shadow-lg transform transition-transform duration-500 hover:scale-110" strokeWidth={1.5} />
+                  </div>
+                  <div className="mt-4 text-center">
+                    <div className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full inline-block">
+                      Inteligência Financeira
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dashboard Mockup Area */}
+                <div className="flex-1 w-full space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-background-light dark:bg-background-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 flex items-center justify-between">
+                        Saldo Atual
+                        <LayoutDashboard size={14} className="text-blue-500"/>
+                      </div>
+                      <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 14.520,00</div>
+                    </div>
+                    <div className="bg-background-light dark:bg-background-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 flex items-center justify-between">
+                        Economia (Mês)
+                        <TrendingUp size={14} className="text-green-500"/>
+                      </div>
+                      <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 2.450,00</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                        <PiggyBank size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                          Dica do Pezzy IA
+                          <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Novo</span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                          Notei que você economizou 15% a mais em Restaurantes este mês! Que tal aplicar essa diferença no seu objetivo de "Reserva de Emergência"?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bars Mockup */}
+                  <div className="bg-background-light dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
+                    <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Progresso de Metas</div>
+                     <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Viagem Férias</span>
+                          <span className="text-primary font-bold">75%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                          <div className="bg-primary h-2 rounded-full" style={{ width: '75%' }}></div>
+                        </div>
+                     </div>
+                     <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Reserva de Emergência</span>
+                          <span className="text-blue-500 font-bold">40%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: '40%' }}></div>
+                        </div>
+                     </div>
+                  </div>
+
+                </div>
               </div>
             </div>
           </div>

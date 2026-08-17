@@ -160,7 +160,8 @@ npm run dev
 ---
 
 ## 🔮 9. Próximos Passos (Trabalhos Futuros)
+* ✅ **Exportação em PDF:** Implementada utilizando `jspdf`.
 * Implementação de criptografia forte (Bcrypt) para as senhas no banco de dados.
 * Recuperação de senha via envio de e-mail (SMTP/Nodemailer).
-* Exportação de relatórios financeiros em formato PDF e planilhas Excel (CSV).
+* Exportação de relatórios financeiros em planilhas Excel.
 * Implementação de transações recorrentes (assinaturas mensais automáticas).
