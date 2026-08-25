@@ -21,7 +21,6 @@ import AdminTransactionForm from './pages/AdminTransactionForm';
 import Inicio from './pages/Inicio';
 import EsqueciSenha from './pages/EsqueciSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
-import PezzyIA from './pages/PezzyIA';
 import PerfilInvestidor from './pages/PerfilInvestidor';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,7 +44,6 @@ const AppRoutes = () => {
         <Route path="transactions/new" element={<NovaTransacao />} />
         <Route path="reports" element={<Relatorios />} />
         <Route path="goals" element={<Metas />} />
-        <Route path="ai" element={<PezzyIA />} />
         <Route path="perfil-investidor" element={<PerfilInvestidor />} />
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users/:id/transactions" element={<AdminUserTransactions />} />

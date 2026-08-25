@@ -15,7 +15,6 @@ O **Despezi** é uma plataforma web completa de Gestão Financeira Pessoal (PFM 
 * Categorização de gastos para análise detalhada.
 * Definição e acompanhamento de metas financeiras.
 * Análise de perfil de investidor através de questionário.
-* Aconselhamento financeiro personalizado via IA (Pezzy IA) com base nos dados reais do usuário.
 * Gestão administrativa de usuários.
 
 **O que o sistema NÃO FAZ (Fora do Escopo Atual):**
@@ -30,7 +29,7 @@ O **Despezi** é uma plataforma web completa de Gestão Financeira Pessoal (PFM 
 O projeto foi desenvolvido utilizando a arquitetura **Client-Server (Cliente-Servidor)**, separando claramente as responsabilidades:
 
 * **Frontend (Client):** Uma *Single Page Application* (SPA) construída com React.js. Responsável por toda a interface, roteamento no lado do cliente, validações de formulário e experiência do usuário (UX/UI).
-* **Backend (Server):** Uma API RESTful construída com Node.js e Express. Responsável por processar as regras de negócio, autenticação, comunicação com a API do Google Gemini e persistência de dados.
+* **Backend (Server):** Uma API RESTful construída com Node.js e Express. Responsável por processar as regras de negócio, autenticação e persistência de dados.
 * **Banco de Dados:** SQLite, operando de forma embutida no backend, garantindo leveza e facilidade de implantação.
 
 ---
@@ -51,11 +50,7 @@ O projeto foi desenvolvido utilizando a arquitetura **Client-Server (Cliente-Ser
 * **Gráficos de Categoria:** Gráfico de pizza mostrando a distribuição dos gastos.
 * **Evolução Mensal:** Gráfico de barras comparando receitas e despesas ao longo dos meses.
 
-### 3.4. Módulo de Inteligência Artificial (Pezzy IA)
-* **Chatbot Contextual:** Um assistente que recebe no *prompt* (de forma invisível ao usuário) o saldo atual, as últimas transações e o perfil de investidor.
-* **Perfil de Investidor:** Um quiz interativo que classifica o usuário como Conservador, Moderado ou Arrojado, moldando as respostas da IA.
-
-### 3.5. Módulo Administrativo
+### 3.4. Módulo Administrativo
 * **Painel Admin:** Área restrita para usuários com a *role* `admin`.
 * **Auditoria:** Capacidade de listar todos os usuários, visualizar suas métricas e acessar suas transações para fins de suporte técnico.
 
@@ -72,20 +67,17 @@ O projeto foi desenvolvido utilizando a arquitetura **Client-Server (Cliente-Ser
 * **RF06 - Relatórios:** O sistema deve gerar gráficos interativos de despesas por categoria e evolução temporal.
 * **RF07 - Gestão de Metas:** O sistema deve permitir a criação de metas com valor alvo e valor atual, exibindo uma barra de progresso.
 * **RF08 - Perfil de Investidor:** O sistema deve aplicar um questionário e salvar o perfil de risco do usuário.
-* **RF09 - Assistente IA:** O sistema deve possuir um chat integrado com a API do Google Gemini, capaz de ler o contexto financeiro do usuário.
-* **RF10 - Painel Admin:** O sistema deve possuir uma rota protegida exclusiva para administradores gerenciarem a base de usuários.
+* **RF09 - Painel Admin:** O sistema deve possuir uma rota protegida exclusiva para administradores gerenciarem a base de usuários.
 
 ### ⚡ Requisitos Não Funcionais (RN)
 * **RN01 - Responsividade:** A interface deve ser *Mobile First*, adaptando-se a telas de celulares, tablets e desktops.
 * **RN02 - Performance:** O carregamento inicial da aplicação (SPA) deve ocorrer em menos de 3 segundos.
 * **RN03 - Segurança:** As senhas devem ser armazenadas com hash criptográfico. A API deve validar tokens JWT em todas as rotas privadas.
 * **RN04 - Usabilidade (Temas):** O sistema deve suportar *Dark Mode* e *Light Mode*, respeitando a preferência do sistema operacional do usuário.
-* **RN05 - Disponibilidade da IA:** O tempo de resposta do assistente Pezzy IA deve ser otimizado, com tratamento de erros caso a API do Google esteja indisponível.
 
 ### 🛡️ Regras de Negócio (RNeg)
 * **RNeg01 - Cálculo de Saldo:** O saldo não é armazenado estaticamente. Ele é o resultado da equação: `Σ Receitas - Σ Despesas`.
 * **RNeg02 - Isolamento de Dados (Multitenancy):** Um usuário (role `user`) só tem permissão para acessar registros onde a chave estrangeira `user_id` corresponda ao seu próprio ID.
-* **RNeg03 - Privacidade da IA:** O contexto enviado para a IA deve ser estritamente limitado aos dados do usuário logado. É proibido o vazamento de dados cruzados no prompt.
 * **RNeg04 - Validação de Senha:** Senhas novas devem ter no mínimo 8 caracteres, contendo letras e números.
 * **RNeg05 - Hierarquia de Acesso:** Apenas usuários com a coluna `role` definida como `admin` podem acessar as rotas `/admin/*`.
 
@@ -96,7 +88,7 @@ O projeto foi desenvolvido utilizando a arquitetura **Client-Server (Cliente-Ser
 | ID | Nome do Caso de Uso | Ator Principal | Resumo do Fluxo |
 |---|---|---|---|
 | **UC01** | Registrar Transação | Usuário | Acessa formulário > Preenche dados (valor, data, categoria) > Salva > Sistema atualiza saldo. |
-| **UC02** | Consultar IA | Usuário | Acessa Pezzy IA > Digita dúvida > Sistema anexa histórico financeiro > Envia à API Gemini > Exibe resposta. |
+| **UC02** | Consultar Relatórios | Usuário | Acessa Relatórios > Visualiza despesas por categoria > Compara evolução mensal > Exporta dados. |
 | **UC03** | Definir Perfil | Usuário | Acessa Perfil > Responde Quiz > Sistema calcula pontuação > Salva perfil (Conservador/Moderado/Arrojado). |
 | **UC04** | Acompanhar Meta | Usuário | Acessa Metas > Visualiza barra de progresso > Adiciona valor à meta > Sistema atualiza porcentagem concluída. |
 | **UC05** | Auditar Contas | Admin | Acessa Painel Admin > Lista usuários > Seleciona usuário > Visualiza transações para suporte. |
@@ -124,10 +116,9 @@ O sistema utiliza um banco de dados relacional (SQLite) com as seguintes entidad
 * **Lucide React:** Pacote de ícones consistentes e modernos.
 * **Sonner:** Biblioteca para notificações (Toasts) elegantes.
 
-### Backend & IA
+### Backend
 * **Node.js & Express:** Ambiente de execução e framework para a API REST.
 * **SQLite:** Banco de dados relacional leve.
-* **Google GenAI SDK (`@google/genai`):** Integração oficial com o modelo Gemini 3 Flash para o assistente virtual.
 * **JWT (JSON Web Token):** Padrão da indústria para autenticação *stateless*.
 
 ---
@@ -136,7 +127,6 @@ O sistema utiliza um banco de dados relacional (SQLite) com as seguintes entidad
 
 ### Pré-requisitos
 * Node.js instalado (versão 18+ recomendada).
-* Chave de API do Google Gemini Studio.
 
 ### Passo a Passo
 
@@ -145,13 +135,7 @@ O sistema utiliza um banco de dados relacional (SQLite) com as seguintes entidad
 npm install
 ```
 
-2. **Configuração de Variáveis de Ambiente:**
-Crie um arquivo `.env` na raiz do projeto e insira sua chave da API do Gemini:
-```env
-GEMINI_API_KEY="sua_chave_do_google_ai_studio_aqui"
-```
-
-3. **Iniciando o Servidor (Frontend + Backend integrados):**
+2. **Iniciando o Servidor (Frontend + Backend integrados):**
 ```bash
 npm run dev
 ```

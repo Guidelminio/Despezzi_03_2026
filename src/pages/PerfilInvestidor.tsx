@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { PiggyBank, Shield, TrendingUp, Rocket, ArrowRight } from 'lucide-react';
+import { PiggyBank, Shield, TrendingUp, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -37,7 +36,6 @@ const questions = [
 
 export default function PerfilInvestidor() {
   const { token, user } = useAuth();
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,24 +130,17 @@ export default function PerfilInvestidor() {
           
           <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 mb-8 text-left">
             <div className="flex items-start gap-4">
-              <div className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-3 rounded-full shrink-0">
-                <PiggyBank size={24} />
+              <div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-3 rounded-full shrink-0">
+                <TrendingUp size={24} />
               </div>
               <div>
-                <h4 className="font-bold mb-1">O Pezzy já sabe disso!</h4>
+                <h4 className="font-bold mb-1">Perfil salvo com sucesso</h4>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Agora que conheço seu perfil, minhas sugestões de investimento no chat serão personalizadas para você.
+                  Seu perfil de risco foi registrado e pode ser consultado novamente a qualquer momento.
                 </p>
               </div>
             </div>
           </div>
-
-          <button 
-            onClick={() => navigate('/ai')}
-            className="w-full bg-primary hover:bg-primary-hover text-slate-900 font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            Falar com o Pezzy IA <ArrowRight size={20} />
-          </button>
         </motion.div>
       </div>
     );
@@ -162,7 +153,7 @@ export default function PerfilInvestidor() {
           <PiggyBank size={32} />
         </div>
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Descubra seu Perfil de Investidor</h2>
-        <p className="text-slate-500 dark:text-slate-400">Responda a 3 perguntas rápidas para o Pezzy te dar dicas melhores.</p>
+        <p className="text-slate-500 dark:text-slate-400">Responda a 3 perguntas rápidas para entender seu perfil de risco.</p>
       </div>
 
       <div className="bg-surface-light dark:bg-surface-dark rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
