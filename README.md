@@ -242,6 +242,7 @@ npm run preview
 │   ├── context/               # Autenticação e tema
 │   ├── pages/                 # Telas públicas, financeiras e administrativas
 │   └── services/              # Integrações, como envio de e-mails
+├── skills/                    # 71 skills de agentes (veja skills/README.md)
 ├── analytics.py              # Protótipo independente de processamento em Python
 ├── .env.example              # Modelo de variáveis de ambiente
 ├── package.json               # Scripts e dependências
