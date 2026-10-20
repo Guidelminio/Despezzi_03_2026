@@ -32,7 +32,7 @@ export default function Layout() {
         { path: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
         { path: '/transactions', icon: ArrowDownCircle, label: 'Transações' },
         { path: '/reports', icon: PieChart, label: 'Relatórios' },
-        { path: '/goals', icon: Target, label: 'Metas' },
+        { path: '/goals', icon: Target, label: 'Orçamento' },
         { path: '/perfil-investidor', icon: TrendingUp, label: 'Perfil' },
       ];
 

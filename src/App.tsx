@@ -16,6 +16,7 @@ import Transacoes from './pages/Transacoes';
 import AdminDashboard from './pages/AdminDashboard';
 import Relatorios from './pages/Relatorios';
 import Metas from './pages/Metas';
+import ObjetivosPoupanca from './pages/ObjetivosPoupanca';
 import AdminUserTransactions from './pages/AdminUserTransactions';
 import AdminTransactionForm from './pages/AdminTransactionForm';
 import Inicio from './pages/Inicio';
@@ -44,6 +45,7 @@ const AppRoutes = () => {
         <Route path="transactions/new" element={<NovaTransacao />} />
         <Route path="reports" element={<Relatorios />} />
         <Route path="goals" element={<Metas />} />
+        <Route path="savings-goals" element={<ObjetivosPoupanca />} />
         <Route path="perfil-investidor" element={<PerfilInvestidor />} />
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users/:id/transactions" element={<AdminUserTransactions />} />

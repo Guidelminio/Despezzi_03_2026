@@ -14,7 +14,7 @@ export default function Login() {
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+      if (origin !== window.location.origin) {
         return;
       }
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
@@ -69,8 +69,8 @@ export default function Login() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+    if (!password || password.length > 128) {
+      setError('Informe uma senha válida.');
       return;
     }
 
@@ -125,6 +125,7 @@ export default function Login() {
             <input
               type="password"
               required
+              maxLength={128}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-background-light dark:bg-background-dark border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none"

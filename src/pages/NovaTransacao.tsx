@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../data/categories';
+import { localTodayIsoDate } from '../utils/financialDates';
 
 export default function NewTransaction() {
   const [searchParams] = useSearchParams();
-  const defaultType = searchParams.get('type') || 'expense';
+  const defaultType = searchParams.get('type') === 'income' ? 'income' : 'expense';
   const navigate = useNavigate();
   const { token } = useAuth();
 
   const [type, setType] = useState(defaultType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(localTodayIsoDate());
   const [category, setCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,8 +22,8 @@ export default function NewTransaction() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numericAmount = parseFloat(amount.replace(',', '.'));
-    if (isNaN(numericAmount)) {
-      toast.error('Valor inválido');
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      toast.error('Informe um valor positivo válido.');
       return;
     }
 
@@ -130,21 +132,9 @@ export default function NewTransaction() {
                 className="w-full px-4 py-3 bg-background-light dark:bg-background-dark border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary outline-none"
               >
                 <option value="" disabled>Selecione...</option>
-                {type === 'expense' ? (
-                  <>
-                    <option value="alimentacao">Alimentação</option>
-                    <option value="moradia">Moradia</option>
-                    <option value="transporte">Transporte</option>
-                    <option value="lazer">Lazer</option>
-                    <option value="outros">Outros</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="salario">Salário</option>
-                    <option value="investimento">Investimento</option>
-                    <option value="outros">Outros</option>
-                  </>
-                )}
+                {(type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -152,12 +142,7 @@ export default function NewTransaction() {
           <div>
             <label className="block text-sm font-medium mb-3">Forma de Pagamento</label>
             <div className="flex flex-wrap gap-3">
-              {[
-                { id: 'credit_card', label: 'Cartão de Crédito' },
-                { id: 'debit_card', label: 'Débito' },
-                { id: 'cash', label: 'Dinheiro' },
-                { id: 'pix', label: 'Pix' }
-              ].map((method) => (
+              {PAYMENT_METHODS.map((method) => (
                 <label key={method.id} className="cursor-pointer">
                   <input
                     type="radio"

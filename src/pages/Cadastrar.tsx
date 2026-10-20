@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPassword } from '../utils/passwordPolicy';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -15,7 +16,7 @@ export default function Register() {
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+      if (origin !== window.location.origin) {
         return;
       }
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
@@ -61,11 +62,6 @@ export default function Register() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const validatePassword = (pass: string) => {
-    // Pelo menos 8 caracteres, uma letra e um número
-    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -80,8 +76,8 @@ export default function Register() {
       return;
     }
 
-    if (!validatePassword(password)) {
-      setError('A senha deve ter pelo menos 8 caracteres, incluindo pelo menos uma letra e um número.');
+    if (!isValidPassword(password)) {
+      setError('A senha deve ter entre 8 e 128 caracteres.');
       return;
     }
 
@@ -144,10 +140,12 @@ export default function Register() {
             <input
               type="password"
               required
+              minLength={8}
+              maxLength={128}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-background-light dark:bg-background-dark border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none"
-              placeholder="********"
+              placeholder="Mínimo 8 caracteres"
             />
           </div>
           <button type="submit" className="w-full py-3 rounded-lg bg-primary hover:bg-primary-hover text-slate-900 font-bold transition-colors mt-2">
