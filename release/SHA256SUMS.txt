@@ -1,0 +1,7 @@
+Despezi LAN Demo installer 1.0.1
+Arquivo: Despezi-Setup-1.0.1.exe
+Tamanho bytes: 67593935
+SHA-256: 5b2941710a68111ba36ed174111b3a1c74d26f3323ab1f7cad9b9b602d0b77bc
+Windows x64; install per-user; Node.js 22.23.4 and Python 3.14.9 included.
+The setup is not code-signed; Windows may show an unknown publisher warning.
+The installer does not contain a database, account, password, or .env file.

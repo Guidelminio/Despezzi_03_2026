@@ -138,6 +138,10 @@ Remove-NetFirewallRule -DisplayName "Despezi Demo 3000"
 
 O modo de apresentação usa dados fictícios, ativa headers/CSP, desativa Google OAuth e envio de e-mails e não inicia o servidor Vite/HMR. O Python continua como processo filho do Node e não abre porta. O arquivo `database-presentation.sqlite` permanece entre execuções; pare o servidor e remova apenas esse arquivo (e `-wal`/`-shm`, se existirem) depois da apresentação. Não encaminhe portas, não crie túnel público e autorize a porta 3000 somente no perfil privado do firewall. A rede local continua usando HTTP: utilize uma rede confiável e nunca insira dados financeiros reais.
 
+### Instalador Windows
+
+O [instalador 1.0.1 para Windows 10/11 x64](release/Despezi-Setup-1.0.1.exe) está versionado junto com o [SHA-256](release/SHA256SUMS.txt) e as [instruções](release/README.md). Ele tem 67.593.935 bytes e adiciona aproximadamente 67,6 MB ao histórico do repositório e aos clones futuros. O EXE não tem assinatura Authenticode; confira o hash antes de executar e não desative o Defender. É uma demo local, em HTTP, com Google OAuth e SMTP desligados; use apenas dados fictícios e não exponha a porta à Internet.
+
 ### Banco descartável e reset seguro
 
 Para uma demonstração isolada, use um arquivo descartável distinto do banco padrão:
