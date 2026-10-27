@@ -276,9 +276,9 @@ export default function Reports() {
                   const expenseHeight = (data.expense / maxMonthlyValue) * 100;
                   
                   return (
-                    <div key={data.monthKey || index} className="flex-1 flex flex-col items-center justify-end h-full gap-2 group relative" title={`${data.name}: receitas ${formatCurrency(data.income)}; despesas ${formatCurrency(data.expense)}`}>
-                      {/* Tooltip */}
-                      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 pointer-events-none z-10 whitespace-nowrap">
+                      <div key={data.monthKey || index} className="min-w-0 flex-1 flex flex-col items-center justify-end h-full gap-2 group relative" title={`${data.name}: receitas ${formatCurrency(data.income)}; despesas ${formatCurrency(data.expense)}`}>
+                        {/* Tooltip */}
+                      <div className="hidden xl:block absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 pointer-events-none z-10 whitespace-nowrap">
                         <p className="text-green-400">Receitas: {formatCurrency(data.income)}</p>
                         <p className="text-red-400">Despesas: {formatCurrency(data.expense)}</p>
                       </div>
@@ -293,7 +293,10 @@ export default function Reports() {
                           style={{ height: `${expenseHeight}%`, minHeight: data.expense > 0 ? '4px' : '0' }}
                         ></div>
                       </div>
-                      <span className="text-xs text-slate-500 font-medium">{data.name}</span>
+                      <span className="text-[10px] sm:text-xs text-slate-500 font-medium whitespace-nowrap" aria-label={data.name}>
+                        <span className="sm:hidden">{data.name.split('/')[0]}</span>
+                        <span className="hidden sm:inline">{data.name}</span>
+                      </span>
                     </div>
                   );
                 })}

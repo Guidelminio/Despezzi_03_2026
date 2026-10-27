@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { CalendarClock, CheckCircle2, Lightbulb, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
+import PlanningTabs from '../components/PlanningTabs';
 import { formatIsoDate, formatMonthKey, localTodayIsoDate } from '../utils/financialDates';
 
 type SavingsGoal = {
@@ -170,10 +170,11 @@ export default function ObjetivosPoupanca() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 max-w-2xl">Defina o que quer alcançar, por que isso importa e como pretende juntar. Os cálculos são lineares e não presumem rendimento, inflação ou financiamento.</p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Link to="/goals" className="inline-flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Ver orçamento</Link>
           <button onClick={beginCreate} className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-slate-900 px-4 py-2 rounded-lg text-sm font-bold"><Plus size={16} /> Novo objetivo</button>
         </div>
       </header>
+
+      <PlanningTabs />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-label="Resumo dos objetivos">
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-5">

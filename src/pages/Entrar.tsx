@@ -10,16 +10,18 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [authWindow, setAuthWindow] = useState<Window | null>(null);
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const origin = event.origin;
-      if (origin !== window.location.origin) {
+      if (origin !== window.location.origin || event.source !== authWindow) {
         return;
       }
+      setAuthWindow(null);
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
         const token = event.data.token;
-        if (token) {
+        if (typeof token === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) {
           try {
             const res = await fetch('/api/auth/me', {
               headers: { Authorization: `Bearer ${token}` }
@@ -39,19 +41,23 @@ export default function Login() {
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [login, navigate]);
+  }, [authWindow, login, navigate]);
 
   const handleGoogleLogin = async () => {
+    const popup = window.open('about:blank', 'oauth_popup', 'width=600,height=700');
+    if (!popup) {
+      toast.error('Por favor, permita popups para fazer login com o Google.');
+      return;
+    }
+    setAuthWindow(popup);
     try {
       const response = await fetch('/api/auth/google/url');
       if (!response.ok) throw new Error('Failed to get auth URL');
       const { url } = await response.json();
-
-      const authWindow = window.open(url, 'oauth_popup', 'width=600,height=700');
-      if (!authWindow) {
-        toast.error('Por favor, permita popups para fazer login com o Google.');
-      }
+      popup.location.href = url;
     } catch (error) {
+      popup.close();
+      setAuthWindow(null);
       toast.error('Erro ao iniciar login com Google.');
     }
   };

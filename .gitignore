@@ -12,3 +12,7 @@ database.sqlite-wal
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+.work/
+
+__pycache__/
+*.py[cod]

@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { isValidEmailAddress } from '../utils/emailValidation.ts';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -15,9 +16,13 @@ function hasSmtpCredentials(): boolean {
 }
 
 function createTransport() {
+  const port = Number(process.env.SMTP_PORT) || 587;
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-    port: Number(process.env.SMTP_PORT) || 587,
+    port,
+    secure: port === 465,
+    requireTLS: port !== 465,
+    tls: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -26,6 +31,8 @@ function createTransport() {
 }
 
 export const sendPasswordResetEmail = async (to: string, name: string, resetLink: string) => {
+  if (process.env.DEMO_MODE === 'true') return false;
+  if (!isValidEmailAddress(to)) return false;
   if (!hasSmtpCredentials()) {
     // Não registrar o link: ele contém o segredo de uso único para redefinição.
     console.info('E-mail de redefinição não enviado: configure SMTP para habilitar a entrega.');
@@ -46,6 +53,8 @@ export const sendPasswordResetEmail = async (to: string, name: string, resetLink
       to,
       subject: 'Recuperação de senha — Despezi',
       html,
+      disableFileAccess: true,
+      disableUrlAccess: true,
     });
     console.info('E-mail de redefinição enviado.');
     return true;
@@ -63,6 +72,8 @@ export const sendGoalAlertEmail = async (
   goal: number,
   alertType: 'warning' | 'exceeded',
 ) : Promise<boolean> => {
+  if (process.env.DEMO_MODE === 'true') return false;
+  if (!isValidEmailAddress(to)) return false;
   if (!hasSmtpCredentials()) {
     return false;
   }
@@ -91,6 +102,8 @@ export const sendGoalAlertEmail = async (
       to,
       subject,
       html,
+      disableFileAccess: true,
+      disableUrlAccess: true,
     });
     console.info('Alerta financeiro enviado por e-mail.');
     return true;

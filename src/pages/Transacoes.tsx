@@ -272,7 +272,7 @@ export default function Transactions() {
                       {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => setTransactionToDelete(t.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1">
+                      <button onClick={() => setTransactionToDelete(t.id)} className="text-slate-400 hover:text-red-500 transition-colors min-h-11 min-w-11 inline-flex items-center justify-center" aria-label={`Excluir transação: ${t.description}`} title="Excluir transação">
                         <Trash2 size={18} />
                       </button>
                     </td>

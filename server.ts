@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
+import helmet from 'helmet';
+import path from 'node:path';
 import { createServer as createViteServer } from 'vite';
 import db from './src/db.ts';
 import crypto from 'crypto';
@@ -10,7 +12,9 @@ import { validateTransactionInput } from './src/services/transactionValidation.t
 import { calculateSavingsGoalPlan, validateSavingsGoalInput } from './src/services/savingsGoalCalculations.ts';
 import { isValidCategory } from './src/data/categories.ts';
 import { isValidPassword } from './src/utils/passwordPolicy.ts';
+import { isValidEmailAddress } from './src/utils/emailValidation.ts';
 import { monthKeyInTimeZone } from './src/utils/financialDates.ts';
+import { runInsightsWorker } from './src/services/insightsWorker.ts';
 
 interface Session {
   userId: number;
@@ -19,6 +23,33 @@ interface Session {
 
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const sessions = new Map<string, Session>();
+const GOOGLE_OAUTH_COOKIE = 'despezi_google_oauth_state';
+const GOOGLE_OAUTH_TTL_MS = 5 * 60 * 1000;
+const googleOAuthAttempts = new Map<string, { codeVerifier: string; expiresAt: number }>();
+
+function googleOAuthCookieIsSecure(): boolean {
+  try {
+    return new URL(process.env.APP_URL || 'http://localhost:3000').protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function readCookie(req: express.Request, cookieName: string): string | null {
+  const entry = req.headers.cookie?.split(';').map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${cookieName}=`));
+  return entry ? entry.slice(cookieName.length + 1) : null;
+}
+
+function setGoogleOAuthStateCookie(res: express.Response, state: string): void {
+  const secure = googleOAuthCookieIsSecure() ? '; Secure' : '';
+  res.append('Set-Cookie', `${GOOGLE_OAUTH_COOKIE}=${state}; Path=/api/auth/google/callback; Max-Age=300; HttpOnly; SameSite=Lax${secure}`);
+}
+
+function clearGoogleOAuthStateCookie(res: express.Response): void {
+  const secure = googleOAuthCookieIsSecure() ? '; Secure' : '';
+  res.append('Set-Cookie', `${GOOGLE_OAUTH_COOKIE}=; Path=/api/auth/google/callback; Max-Age=0; HttpOnly; SameSite=Lax${secure}`);
+}
 
 function createSession(userId: number): string {
   const token = crypto.randomUUID();
@@ -98,6 +129,42 @@ async function startServer() {
   await migrateLegacyPasswords();
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+  const HOST = process.env.HOST?.trim() || '127.0.0.1';
+  const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+  const DEMO_MODE = process.env.DEMO_MODE === 'true';
+
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65_535) {
+    throw new Error('PORT deve ser um inteiro entre 1 e 65535.');
+  }
+
+  app.disable('x-powered-by');
+  app.set('query parser', 'simple');
+  app.use(helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    hsts: false,
+    contentSecurityPolicy: DEMO_MODE ? {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        upgradeInsecureRequests: null,
+      },
+    } : false,
+  }));
+
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    next();
+  });
 
   app.use(express.json({ limit: '20kb' }));
 
@@ -118,6 +185,7 @@ async function startServer() {
   const registrationRateLimit = createRateLimiter(5, 60 * 60 * 1000);
   const recoveryRateLimit = createRateLimiter(3, 60 * 60 * 1000);
   const resetRateLimit = createRateLimiter(8, 15 * 60 * 1000);
+  const googleOAuthRateLimit = createRateLimiter(10, 15 * 60 * 1000);
 
     // Auth Routes
   app.post('/api/auth/register', registrationRateLimit, async (req, res) => {
@@ -128,7 +196,7 @@ async function startServer() {
     if (name.length < 3 || name.length > 80) {
       return res.status(400).json({ error: 'O nome deve ter entre 3 e 80 caracteres.' });
     }
-    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email.length > 254 || !isValidEmailAddress(email)) {
       return res.status(400).json({ error: 'E-mail inválido.' });
     }
     if (!isValidPassword(password)) {
@@ -194,7 +262,7 @@ async function startServer() {
 
   app.post('/api/auth/forgot-password', recoveryRateLimit, asyncHandler(async (req, res) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-    if (email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email.length <= 254 && isValidEmailAddress(email)) {
       const user = db.prepare('SELECT id, name FROM users WHERE email = ? COLLATE NOCASE').get(email) as any;
       if (user) {
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -247,25 +315,61 @@ async function startServer() {
   }));
 
 // Google OAuth Routes
-  app.get('/api/auth/google/url', (req, res) => {
+  app.get('/api/auth/google/url', googleOAuthRateLimit, (req, res) => {
+    if (DEMO_MODE) return res.status(503).json({ error: 'O login Google fica desativado na demonstração local.' });
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(503).json({ error: 'Login Google não configurado.' });
+    }
+
+    const now = Date.now();
+    for (const [pendingState, attempt] of googleOAuthAttempts) {
+      if (attempt.expiresAt <= now) googleOAuthAttempts.delete(pendingState);
+    }
+    if (googleOAuthAttempts.size >= 1000) {
+      return res.status(429).json({ error: 'Muitas tentativas de autenticação. Tente novamente.' });
+    }
+
+    const state = crypto.randomBytes(32).toString('base64url');
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+    googleOAuthAttempts.set(state, { codeVerifier, expiresAt: now + GOOGLE_OAUTH_TTL_MS });
+    setGoogleOAuthStateCookie(res, state);
+
     const redirectUri = `${process.env.APP_URL || `http://localhost:${PORT}`}/api/auth/google/callback`;
-    
     const params = new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID || '',
       redirect_uri: redirectUri,
       response_type: 'code',
-      scope: 'email profile',
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
       access_type: 'offline',
-      prompt: 'consent'
+      prompt: 'consent',
+      scope: 'email profile',
     });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-    res.json({ url: authUrl });
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({ url: authUrl });
   });
 
   app.get('/api/auth/google/callback', async (req, res) => {
-    const { code } = req.query;
+    if (DEMO_MODE) return res.status(503).send('O login Google fica desativado na demonstração local.');
+
+    const { code, state } = req.query;
+    const cookieState = readCookie(req, GOOGLE_OAUTH_COOKIE);
+    clearGoogleOAuthStateCookie(res);
+    if (typeof state !== 'string' || !cookieState || state !== cookieState) {
+      return res.status(400).send('Tentativa de autenticação inválida. Feche esta janela e tente novamente.');
+    }
+    const attempt = googleOAuthAttempts.get(state);
+    googleOAuthAttempts.delete(state);
+    if (!attempt || attempt.expiresAt <= Date.now() || typeof code !== 'string' || code.length > 4096) {
+      return res.status(400).send('Tentativa de autenticação expirada. Feche esta janela e tente novamente.');
+    }
+
     const redirectUri = `${process.env.APP_URL || `http://localhost:${PORT}`}/api/auth/google/callback`;
+    const targetOrigin = JSON.stringify(new URL(process.env.APP_URL || `http://localhost:${PORT}`).origin);
     
     try {
       // Exchange code for token
@@ -277,24 +381,27 @@ async function startServer() {
           client_id: process.env.GOOGLE_CLIENT_ID || '',
           client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
           redirect_uri: redirectUri,
-          grant_type: 'authorization_code'
-        })
+          grant_type: 'authorization_code',
+          code_verifier: attempt.codeVerifier,
+        }),
+        signal: AbortSignal.timeout(10_000),
       });
       
       const tokenData = await tokenResponse.json();
       
-      if (!tokenData.access_token) {
+      if (!tokenResponse.ok || !tokenData.access_token) {
         throw new Error('Failed to get access token');
       }
 
       // Get user info
       const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       
       const userData = await userResponse.json();
       
-      if (typeof userData.email !== 'string' || userData.verified_email !== true) {
+      if (!userResponse.ok || typeof userData.email !== 'string' || userData.verified_email !== true) {
         throw new Error('Google account email is missing or not verified');
       }
 
@@ -320,13 +427,14 @@ async function startServer() {
 
       // Create session
       const sessionToken = createSession(Number(userId));
-      const targetOrigin = JSON.stringify(new URL(process.env.APP_URL || `http://localhost:${PORT}`).origin);
+      const scriptNonce = crypto.randomBytes(18).toString('base64');
 
-      // Restrict postMessage to the configured application origin.
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Security-Policy', `default-src 'none'; script-src 'nonce-${scriptNonce}'; base-uri 'none'; frame-ancestors 'none'`);
       res.send(`
         <html>
           <body>
-            <script>
+            <script nonce="${scriptNonce}">
               if (window.opener) {
                 window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${sessionToken}' }, ${targetOrigin});
                 window.close();
@@ -338,14 +446,17 @@ async function startServer() {
           </body>
         </html>
       `);
-    } catch (error) {
-      console.error('Google OAuth Error:', error);
+    } catch {
+      const scriptNonce = crypto.randomBytes(18).toString('base64');
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Security-Policy', `default-src 'none'; script-src 'nonce-${scriptNonce}'; base-uri 'none'; frame-ancestors 'none'`);
+      console.error('Falha no login Google.');
       res.send(`
         <html>
           <body>
-            <script>
+            <script nonce="${scriptNonce}">
               if (window.opener) {
-                window.opener.postMessage({ type: 'OAUTH_AUTH_ERROR' }, '*');
+                window.opener.postMessage({ type: 'OAUTH_AUTH_ERROR' }, ${targetOrigin});
                 window.close();
               }
             </script>
@@ -532,18 +643,82 @@ async function startServer() {
     ));
   });
 
-// User Profile Route
-  app.post('/api/users/profile', requireAuth, (req, res) => {
-    try {
-      const userId = (req as any).userId;
-      const { profile } = req.body;
-      db.prepare('UPDATE users SET investor_profile = ? WHERE id = ?').run(profile, userId);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: 'Erro ao salvar perfil' });
-    }
-  });
+  // Python receives only bounded aggregates for the authenticated user's completed records.
+  app.get('/api/insights', requireAuth, asyncHandler(async (req, res) => {
+    const userId = (req as any).userId;
+    const now = new Date();
+    const timeZone = process.env.APP_TIME_ZONE || 'America/Sao_Paulo';
+    const monthKey = monthKeyInTimeZone(now, timeZone);
+    const budgetRows = db.prepare(
+      'SELECT category, amount FROM spending_goals WHERE user_id = ? ORDER BY category',
+    ).all(userId) as Array<{ category: string; amount: number }>;
+    const spentRows = db.prepare(`
+      SELECT category, SUM(amount) AS total
+      FROM transactions
+      WHERE user_id = ? AND type = 'expense' AND status = 'completed' AND date LIKE ?
+      GROUP BY category
+    `).all(userId, `${monthKey}%`) as Array<{ category: string; total: number | null }>;
+    const spentByCategory = new Map(spentRows.map((row) => [row.category, Number(row.total || 0)]));
+    const budgetUsage = budgetRows
+      .filter((row) => isValidCategory('expense', row.category) && Number.isFinite(Number(row.amount)) && Number(row.amount) > 0)
+      .map((row) => {
+        const limitCents = Math.round(Number(row.amount) * 100);
+        const spentCents = Math.round((spentByCategory.get(row.category) || 0) * 100);
+        const usageBasisPoints = limitCents > 0
+          ? Math.min(100_000_000, Math.max(0, Math.round((spentCents / limitCents) * 10_000)))
+          : 0;
+        return { category: row.category, usage_basis_points: usageBasisPoints };
+      });
 
+    const savingsRows = db.prepare(`
+      SELECT target_amount_cents, amount_saved_cents, target_date, monthly_contribution_cents
+      FROM savings_goals
+      WHERE user_id = ?
+      ORDER BY created_at DESC, id DESC
+    `).all(userId) as Array<{
+      target_amount_cents: number;
+      amount_saved_cents: number;
+      target_date: string | null;
+      monthly_contribution_cents: number | null;
+    }>;
+    const goalSummary = {
+      active_count: 0,
+      completed_count: 0,
+      shortfall_count: 0,
+      deadline_only_count: 0,
+      on_track_count: 0,
+    };
+    for (const row of savingsRows) {
+      const plan = calculateSavingsGoalPlan({
+        targetAmountCents: Number(row.target_amount_cents),
+        amountSavedCents: Number(row.amount_saved_cents),
+        targetDate: row.target_date || null,
+        monthlyContributionCents: row.monthly_contribution_cents == null
+          ? null
+          : Number(row.monthly_contribution_cents),
+      }, now, timeZone);
+      if (plan.isComplete) {
+        goalSummary.completed_count += 1;
+      } else {
+        goalSummary.active_count += 1;
+        if (plan.isOnTrack === false) goalSummary.shortfall_count += 1;
+        else if (plan.isOnTrack === null) goalSummary.deadline_only_count += 1;
+        else goalSummary.on_track_count += 1;
+      }
+    }
+
+    try {
+      const result = await runInsightsWorker({
+        contract_version: 1,
+        budget_usage: budgetUsage,
+        goals: goalSummary,
+      });
+      return res.json({ ...result, degraded: false });
+    } catch {
+      console.error('O worker de insights está indisponível; os demais recursos continuam ativos.');
+      return res.json({ contract_version: 1, insights: [], degraded: true });
+    }
+  }));
 
   // Admin Routes
   app.get('/api/admin/stats', requireAuth, (req, res) => {
@@ -667,14 +842,24 @@ async function startServer() {
     return res.json({ success: true });
   });
 
-  app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('Falha interna ao processar uma requisição.');
-    if (res.headersSent) return next(error);
-    return res.status(500).json({ error: 'Erro interno do servidor.' });
-  });
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota da API não encontrada.' }));
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (IS_PRODUCTION) {
+    const webRoot = path.resolve(process.cwd(), 'dist');
+    app.use(express.static(webRoot, {
+      index: false,
+      maxAge: '1h',
+      immutable: true,
+    }));
+    app.get(/^\/(?!api(?:\/|$)).*/, (req, res, next) => {
+      if (path.extname(req.path) || !req.accepts('html')) return next();
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(path.join(webRoot, 'index.html'), (error) => {
+        if (error) next(error);
+      });
+    });
+  } else {
+    // Vite/HMR remains available only in local development mode.
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -682,8 +867,14 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('Falha interna ao processar uma requisição.');
+    if (res.headersSent) return next(error);
+    return res.status(500).json({ error: 'Erro interno do servidor.' });
+  });
+
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on ${HOST}:${PORT}${DEMO_MODE ? ' (demo mode)' : ''}`);
   });
 }
 

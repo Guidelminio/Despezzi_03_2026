@@ -1,16 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, AlertTriangle } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Lightbulb } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { formatIsoDate } from '../utils/financialDates';
 import { categoryLabel } from '../data/categories';
+
+type DashboardInsight = { code: string; category: string | null; message: string };
 
 export default function Dashboard() {
   const { user, token } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [goals, setGoals] = useState<any[]>([]);
+  const [insights, setInsights] = useState<DashboardInsight[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [insightsUnavailable, setInsightsUnavailable] = useState(false);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -34,6 +38,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user?.role !== 'admin') {
+      setInsightsLoading(true);
       fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => setStats(data));
@@ -49,14 +54,18 @@ export default function Dashboard() {
         })
         .catch(() => setTransactions([]));
 
-      fetch('/api/goals', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setGoals(data);
-          }
+      fetch('/api/insights', { headers: { Authorization: `Bearer ${token}` } })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error('Insights indisponíveis.');
+          setInsights(Array.isArray(data.insights) ? data.insights : []);
+          setInsightsUnavailable(Boolean(data.degraded));
         })
-        .catch(() => setGoals([]));
+        .catch(() => {
+          setInsights([]);
+          setInsightsUnavailable(true);
+        })
+        .finally(() => setInsightsLoading(false));
     }
   }, [token, user]);
 
@@ -66,19 +75,6 @@ export default function Dashboard() {
 
   // Use real chart data from stats or fallback to empty array
   const chartData = Array.isArray(stats?.chartData) ? stats.chartData : [];
-  
-  const currentMonthExpenses = stats?.currentMonthCategoryExpenses || {};
-  
-  const alerts = goals.map(goal => {
-    const spent = currentMonthExpenses[goal.category] || 0;
-    const percentage = (spent / goal.amount) * 100;
-    if (percentage >= 100) {
-      return { category: goal.category, type: 'exceeded', message: `Você excedeu seu limite de gastos em ${categoryLabel(goal.category)}.` };
-    } else if (percentage >= 80) {
-      return { category: goal.category, type: 'warning', message: `Atenção: você já utilizou ${percentage.toFixed(0)}% do limite de ${categoryLabel(goal.category)}.` };
-    }
-    return null;
-  }).filter(Boolean);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -99,53 +95,68 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {alerts.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {alerts.map((alert: any, i) => (
-            <div key={i} className={`flex items-center gap-3 p-4 rounded-xl border ${alert.type === 'exceeded' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'}`}>
-              <AlertTriangle size={20} className="shrink-0" />
-              <p className="text-sm font-medium">{alert.message}</p>
-              <Link to="/goals" className="ml-auto text-sm underline font-semibold">Ver orçamento</Link>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" aria-label="Resumo financeiro">
         <div className="rounded-xl p-6 bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-              <Wallet size={16} />
-            </div>
+            <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"><Wallet size={16} /></div>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Saldo Atual</p>
           </div>
-          <p className="text-3xl font-bold tracking-tight">
-            R$ {(stats?.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
+          <p className="text-3xl font-bold tracking-tight">R$ {(stats?.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="rounded-xl p-6 bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-              <TrendingUp size={16} />
-            </div>
+            <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"><TrendingUp size={16} /></div>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Receitas</p>
           </div>
-          <p className="text-3xl font-bold tracking-tight">
-            R$ {(stats?.totalIncome || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
+          <p className="text-3xl font-bold tracking-tight">R$ {(stats?.totalIncome || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="rounded-xl p-6 bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-              <TrendingDown size={16} />
-            </div>
+            <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"><TrendingDown size={16} /></div>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Despesas</p>
           </div>
-          <p className="text-3xl font-bold tracking-tight">
-            R$ {(stats?.totalExpense || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
+          <p className="text-3xl font-bold tracking-tight">R$ {(stats?.totalExpense || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
       </div>
+
+      <section className="rounded-xl bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 p-5 md:p-6" aria-labelledby="dashboard-insights-title">
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb size={20} className="text-amber-600" />
+          <h3 id="dashboard-insights-title" className="text-lg font-bold">Insights da sua organização</h3>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Regras simples baseadas nos lançamentos concluídos, limites e objetivos que você informou. São estimativas; nenhum valor é alterado automaticamente.</p>
+        {insightsLoading ? (
+          <p role="status" className="text-sm text-slate-500">Calculando insights…</p>
+        ) : insightsUnavailable ? (
+          <p role="status" className="text-sm text-slate-600 dark:text-slate-300">Insights temporariamente indisponíveis. Suas transações, objetivos e limites continuam funcionando normalmente.</p>
+        ) : insights.length > 0 ? (
+          <ul className="space-y-3" aria-live="polite">
+            {insights.map((insight) => {
+              const isWarning = insight.code === 'budget_limit_reached' || insight.code === 'goals_plan_shortfall';
+              const heading = insight.category
+                ? `Limite de ${categoryLabel(insight.category)}`
+                : 'Objetivos de poupança';
+              const target = insight.category ? '/goals' : '/savings-goals';
+              return (
+                <li key={`${insight.code}-${insight.category ?? 'goals'}`} className={`flex items-start gap-3 rounded-lg border p-4 ${isWarning ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60 text-amber-900 dark:text-amber-200' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'}`}>
+                  {isWarning ? <AlertTriangle size={19} className="mt-0.5 shrink-0" aria-hidden="true" /> : <Lightbulb size={19} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm">{heading}</p>
+                    <p className="mt-1 text-sm">{insight.message}</p>
+                  </div>
+                  <Link
+                    to={target}
+                    aria-label={insight.category ? `Ver limite de ${categoryLabel(insight.category)}` : 'Ver objetivos de poupança'}
+                    className="shrink-0 text-sm underline font-semibold focus-visible:outline"
+                  >Ver</Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-slate-600 dark:text-slate-300">Nenhum insight para mostrar agora. Cadastre um objetivo ou limite mensal para acompanhar seu planejamento.</p>
+        )}
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 shadow-sm p-6">

@@ -22,7 +22,6 @@ import AdminTransactionForm from './pages/AdminTransactionForm';
 import Inicio from './pages/Inicio';
 import EsqueciSenha from './pages/EsqueciSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
-import PerfilInvestidor from './pages/PerfilInvestidor';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -46,7 +45,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<Relatorios />} />
         <Route path="goals" element={<Metas />} />
         <Route path="savings-goals" element={<ObjetivosPoupanca />} />
-        <Route path="perfil-investidor" element={<PerfilInvestidor />} />
+        <Route path="perfil-investidor" element={<Navigate to="/dashboard" replace />} />
         <Route path="admin" element={<AdminDashboard />} />
         <Route path="admin/users/:id/transactions" element={<AdminUserTransactions />} />
         <Route path="admin/users/:id/transactions/new" element={<AdminTransactionForm />} />

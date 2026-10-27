@@ -28,13 +28,15 @@ Integrações opcionais: SMTP (Nodemailer) e OAuth Google.
 Desenvolvimento/build: Vite 6, com middleware integrado no servidor local.
 ```
 
-A API atual calcula estatísticas em Node.js. O arquivo `analytics.py` é independente e não é invocado pelo fluxo ativo. Não existe tabela `analytics_results`. A autenticação não usa JWT: o servidor gera tokens aleatórios UUID e mantém as sessões em memória. Se Python ou JWT forem exigências formais do TCC, a equipe deve decidir isso com o orientador antes de alterar ou descrever a arquitetura.
+A API mantém os cálculos financeiros centrais em Node.js/TypeScript. O endpoint autenticado `/api/insights` chama sob demanda um worker Python 3.9+ de biblioteca padrão por `child_process.spawn`, `shell: false` e JSON via stdin. O Node continua sendo a única camada que autentica, consulta o SQLite e autoriza por `user_id`; o worker recebe apenas percentuais agregados de limites e contagens do estado dos objetivos, nunca tokens, nomes, e-mails, IDs persistentes, descrições, motivos privados ou caminho do banco.
+
+O worker em `worker/insights_worker.py` valida contrato versão 1, aplica limites de entrada/saída, timeout e concorrência, não importa SQLite, não abre arquivos de dados, não atende rede e não grava resultados. `analytics.py` é apenas uma entrada de compatibilidade que encaminha stdin ao worker seguro; não há tabela `analytics_results`. Se o processo falhar, `/api/insights` informa estado degradado sem alterar estatísticas, transações, objetivos ou limites. A autenticação continua usando tokens UUID e sessões em memória; não há JWT nem autenticação duplicada no Python.
 
 ## 3. Modelo de dados
 
 | Tabela | Dados principais | Uso |
 |---|---|---|
-| `users` | `id`, nome, e-mail, `password`, papel e perfil | Conta e autorização. O conteúdo de `password` é um hash scrypt versionado, não a senha em texto claro. |
+| `users` | `id`, nome, e-mail, `password`, papel e coluna legada `investor_profile` | Conta e autorização. A coluna legada é preservada, mas não é exposta na demonstração. O conteúdo de `password` é um hash scrypt versionado, não a senha em texto claro. |
 | `transactions` | usuário, tipo, valor positivo, descrição, data, categoria, pagamento e status | Movimentações financeiras. O valor é armazenado como `REAL`; cálculos estatísticos convertem para centavos inteiros durante a operação. |
 | `spending_goals` | usuário, categoria e limite positivo | Limites mensais de despesas, um por categoria/usuário. |
 | `savings_goals` | usuário, título, motivo, `target_amount_cents`, `amount_saved_cents`, data-alvo e aporte mensal opcional | Objetivos privados de poupança. Valores monetários em centavos inteiros. |
@@ -76,6 +78,12 @@ A rota `/api/stats` usa apenas transações concluídas e o fuso `APP_TIME_ZONE`
 
 CSV usa UTF-8 com BOM, ponto e vírgula e escape de campos para melhor compatibilidade com planilhas em pt-BR. Relatórios em PDF e CSV indicam o escopo temporal de seus dados.
 
+### Worker de insights determinísticos
+
+O Node consulta limites do usuário atual e despesas concluídas do mês em curso, converte o uso em pontos-base e resume os objetivos usando `calculateSavingsGoalPlan` existente. O worker recebe somente `budget_usage` (categoria e pontos-base) e `goals` (contagens de objetivos ativos, concluídos, no prazo, com insuficiência ou sem aporte informado). As regras financeiras continuam autoritativas no TypeScript; o Python gera apenas mensagens determinísticas e versionadas.
+
+O processo filho é chamado com caminho fixo do script, argumentos fixos, modo Python isolado, ambiente reduzido sem `DATABASE_PATH` ou segredos, stdin limitado a 16 KiB, timeout de 2 segundos e no máximo quatro workers concorrentes por processo Node. A resposta JSON é validada antes de chegar ao cliente. Uma falha resulta em `degraded: true` e lista de insights vazia; ela não bloqueia `/api/transactions`, `/api/goals`, `/api/savings-goals` ou `/api/stats`.
+
 ## 6. Objetivos de poupança
 
 ### Campos e autorização
@@ -114,18 +122,22 @@ As rotas privadas exigem `Authorization: Bearer <token>`.
 | `GET/POST /api/goals`, `DELETE /api/goals/:category` | Listar, criar/atualizar e remover limite mensal próprio. |
 | `GET/POST /api/savings-goals`, `PUT/DELETE /api/savings-goals/:id` | CRUD de objetivos de poupança próprios. |
 | `GET /api/stats` | Indicadores e séries financeiras próprias. |
-| `POST /api/users/profile` | Salvar perfil declarado pelo usuário. |
+| `GET /api/insights` | Insights determinísticos com worker Python interno e falha degradada. |
 | `/api/admin/*` | Indicadores e manutenção administrativa, protegidos por papel. |
 
 ## 8. Testes e evidências desta revisão
 
-Em 20/10/2026, na cópia de trabalho local:
+Em 22/10/2026, na branch `fix/security-and-financial-charts`, com base conhecida `fd97883` e dados fictícios em SQLite descartável:
 
 - `npm run lint` — passou (`tsc --noEmit`).
-- `npm test` — passou com **16 testes unitários**, incluindo scrypt, datas, CSV, validação de transações, estatísticas e fórmulas de objetivos.
-- `npm run build` — passou; Vite reportou que o bundle principal é maior que 500 kB, item não bloqueador a otimizar.
-- Teste integrado com SQLite descartável — passou para cadastro/login, unicidade case-insensitive, hash scrypt persistido, validação, totais e categorias, criação/listagem de objetivo e isolamento entre usuários, recuperação de senha e logout.
-- Revisão visual manual — a tela de objetivos carregou no navegador de QA em desktop com dados fictícios, exibindo nome, motivo, valores, progresso, prazo, aporte planejado e diferença. Não foi uma auditoria WCAG completa nem teste em dispositivo real.
+- `npm test` — passou com **24 testes Node** e **5 testes Python**, incluindo integração HTTP/SQLite, isolamento, OAuth state/PKCE, validação de destinatário, bloqueio de SMTP em demo, falha degradada do worker e cálculos financeiros.
+- `npm run build` — passou com Vite 6.4.5; o bundle principal tem 1,305 MB minificado (400,68 kB gzip) e ainda aciona o aviso acima de 500 kB, pendência de otimização.
+- API real com SQLite temporário — registro e gravação de despesa feitos pela interface; o usuário fictício criou limite de Alimentação de R$ 100 e objetivo de R$ 1.000 com motivo, R$ 100 acumulados, prazo e aporte. O painel apresentou corretamente 85% de uso do limite e insuficiência do aporte, sem mudar orçamento.
+- Chromium 154 — matriz de **20 combinações** (painel, transações, limites, objetivos e relatórios em 320×720, 375×812, 768×1024 e 1365×900): zero overflow horizontal da página, KPIs antes dos insights, sem sidebar desktop em tablet e navegação coerente nos objetivos. O último controle focável ficou ao menos 33px acima da navegação fixa mobile após rolagem ao fim. Capturas e medições estão em `evidence/presentation-qa-20261022/`.
+- Teclado/modal — o diálogo de exclusão abriu com papel acessível; Escape fechou após a animação e o foco retornou ao botão acionador. Isso é smoke test, não auditoria completa WCAG ou leitor de tela.
+- `npm audit` — **0 vulnerabilidades conhecidas** em 22/10/2026 após Nodemailer 10.2.1, `qs` 6.16.1 e atualização de `tsx`/`esbuild`; a versão Nodemailer exige Node 20+.
+- O runner `npm run presentation` foi iniciado no Sandbox: build estático respondeu HTTP 200, enviou CSP/headers Helmet, não anunciou `X-Powered-By`, aplicou `no-store` à API e devolveu 404 JSON para rota API inexistente. Somente esse runner usa bind `0.0.0.0`; o servidor de desenvolvimento usa `127.0.0.1`. Python continua sem porta de rede.
+- O Desktop autorizado estava offline e o Sandbox não detectou IPv4 privado; conexão de telefone físico, rede Wi-Fi e firewall do computador da apresentação **não foram testados**.
 
 Testes aprovados neste ambiente não constituem resultado de testes com usuários, certificação de segurança ou evidência de implantação pública. A versão final deve repetir os testes no ambiente escolhido para apresentação e guardar evidências.
 
@@ -140,15 +152,20 @@ npm test
 npm run build
 ```
 
-`DATABASE_PATH` seleciona o arquivo SQLite; use outro arquivo descartável para testes. O `.env.example` não contém segredos reais. Não versionar `.env` nem bancos locais. SMTP e OAuth são integrações opcionais.
+Node.js 20+ é necessário. `npm run dev` fica restrito a `127.0.0.1`; para demonstrar no computador e acessar pelo telefone na mesma rede privada, use `npm run presentation`. Esse runner compila a interface, serve estáticos com Node, usa `database-presentation.sqlite` e desativa Google OAuth e e-mail. No celular, abra um IPv4 privado anunciado pelo comando. Acesso por LAN permanece HTTP; use dados fictícios e Wi-Fi confiável. O `.env.example` não contém segredos reais. Não versionar `.env` nem bancos locais.
+
+Para esta versão, Python 3.9+ é necessário para os insights, sem instalação de pacotes Python. O padrão é `python3` em Linux/macOS e `python` no Windows; configure `PYTHON_EXECUTABLE` no `.env` se o executável estiver em outro caminho. `npm test` roda testes Node, integração de API em banco temporário e testes unitários Python.
+
+O uso pelo celular é via navegador responsivo, sem instalação de app nativo e sem modo offline. Restringir o firewall à sub-rede local e não encaminhar portas à Internet. O computador e telefone reais da apresentação ainda precisam ser ensaiados juntos.
 
 ## 10. Limitações e decisões pendentes
 
-1. Confirmar com o orientador se Python e JWT continuam sendo requisitos obrigatórios; a implementação ativa é Node.js/Express e sessões UUID.
-2. Avaliar persistência e armazenamento seguro de sessão, proteção CSRF e fluxo OAuth antes de qualquer implantação pública.
-3. Revisar a estratégia de criação de conta administrativa e a demonstração sem credenciais fixas.
-4. Fazer teste visual/responsivo real em celular e revisão assistiva de acessibilidade; esta revisão não certifica conformidade WCAG.
-5. Avaliar divisão do bundle e repetir instalação, build e casos funcionais no ambiente da apresentação.
-6. Manter dados fictícios, backup e instrução de reset da base.
+1. A integração Python está implementada como worker complementar, sem duplicar autenticação ou cálculos financeiros centrais. Confirmar com o orientador se existe requisito acadêmico adicional de JWT ou outro contrato.
+2. Tokens ainda são armazenados em `localStorage` e o acesso LAN usa HTTP sem criptografia. Cookies `HttpOnly`, proteção CSRF e HTTPS são necessários antes de usar dados reais.
+3. OAuth state/PKCE foi testado com credenciais simuladas, mas não com um app Google real; o runner de apresentação o desativa. SQLite não é criptografado em repouso.
+4. Repetir a matriz em celular/tablet reais, fazer revisão com leitor de tela e auditar WCAG; a simulação Chromium não certifica conformidade.
+5. Otimizar o bundle principal acima de 500 kB e repetir instalação/build no computador Windows da apresentação.
+6. A possibilidade de Ollama local está registrada em `OLLAMA_LOCAL_FEASIBILITY.md`; não há integração com IA nesta versão.
+7. Manter dados fictícios, backup e instrução de reset da base.
 
 **Conclusão:** o estado atual é um protótipo acadêmico mais verificável que o snapshot original: inclui scrypt, validação de API, cálculos testados de objetivos, estatísticas com competências estáveis e testes automatizados/integrados. Ainda exige validação final, documentação institucional aprovada e hardening de sessão antes de qualquer uso real.

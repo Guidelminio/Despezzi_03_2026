@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Target, Plus, Trash2, AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import PlanningTabs from '../components/PlanningTabs';
 import { motion } from 'motion/react';
 import { EXPENSE_CATEGORIES } from '../data/categories';
 
@@ -116,13 +116,10 @@ export default function Goals() {
     <div className="max-w-4xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Orçamento por categoria</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Limites mensais por categoria</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm">Defina limites mensais por categoria e acompanhe seu progresso.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/savings-goals" className="inline-flex items-center gap-2 border border-slate-300 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
-            <Target size={17} /> Objetivos de poupança
-          </Link>
           <button
             onClick={() => setIsAdding(!isAdding)}
             className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-slate-900 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm shadow-primary/20"
@@ -132,6 +129,8 @@ export default function Goals() {
           </button>
         </div>
       </header>
+
+      <PlanningTabs />
 
       {isAdding && (
         <motion.div 
@@ -246,6 +245,7 @@ export default function Goals() {
                     onClick={() => setGoalToDelete(goal.category)}
                     className="text-slate-400 hover:text-red-500 transition-colors p-2"
                     title="Remover Meta"
+                    aria-label={`Remover limite de ${categoryLabel}`}
                   >
                     <Trash2 size={18} />
                   </button>
