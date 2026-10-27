@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { LayoutDashboard, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPassword } from '../utils/passwordPolicy';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -20,8 +21,8 @@ export default function ResetPassword() {
       return toast.error('As senhas não coincidem.');
     }
     
-    if (password.length < 6) {
-      return toast.error('A senha deve ter pelo menos 6 caracteres.');
+    if (!isValidPassword(password)) {
+      return toast.error('A senha deve ter entre 8 e 128 caracteres.');
     }
 
     setLoading(true);
@@ -90,17 +91,21 @@ export default function ResetPassword() {
               <label className="block text-sm font-medium mb-1">Nova Senha</label>
               <input 
                 type="password" 
+                minLength={8}
+                maxLength={128}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                 required
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Confirmar Nova Senha</label>
               <input 
                 type="password" 
+                minLength={8}
+                maxLength={128}
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"

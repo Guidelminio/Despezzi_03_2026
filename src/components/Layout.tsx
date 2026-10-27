@@ -16,7 +16,6 @@ import {
   Sun,
   Moon,
   Plus,
-  TrendingUp
 } from 'lucide-react';
 
 export default function Layout() {
@@ -32,21 +31,24 @@ export default function Layout() {
         { path: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
         { path: '/transactions', icon: ArrowDownCircle, label: 'Transações' },
         { path: '/reports', icon: PieChart, label: 'Relatórios' },
-        { path: '/goals', icon: Target, label: 'Metas' },
-        { path: '/perfil-investidor', icon: TrendingUp, label: 'Perfil' },
+        { path: '/goals', icon: Target, label: 'Planejar' },
       ];
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
+  const isNavItemActive = (path: string) => location.pathname === path
+    || (path === '/transactions' && location.pathname.startsWith('/transactions'))
+    || (path === '/goals' && location.pathname === '/savings-goals');
+
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden">
       <Toaster position="top-right" richColors closeButton theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
       <QuickAddModal />
       
       {/* Sidebar (Desktop) */}
-      <aside className="hidden md:flex flex-col justify-between w-64 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-50">
+      <aside className="hidden lg:flex flex-col justify-between w-64 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-50">
         <div className="p-6 flex-1 overflow-y-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="bg-primary rounded-full w-10 h-10 flex items-center justify-center text-slate-900 shadow-sm">
@@ -70,12 +72,13 @@ export default function Layout() {
 
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = isNavItemActive(item.path);
               const Icon = item.icon;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     isActive 
                       ? 'text-green-800 dark:text-primary font-semibold' 
@@ -114,7 +117,7 @@ export default function Layout() {
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
               </div>
             </div>
-            <button onClick={logout} className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0" title="Sair">
+            <button onClick={logout} className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0" title="Sair" aria-label="Sair da conta">
               <LogOut size={18} />
             </button>
           </div>
@@ -122,9 +125,9 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative pb-16 md:pb-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-10">
+        <header className="lg:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark z-10">
           <div className="flex items-center gap-2">
             <div className="bg-primary w-8 h-8 rounded-lg flex items-center justify-center text-slate-900">
               <LayoutDashboard size={16} />
@@ -132,16 +135,16 @@ export default function Layout() {
             <span className="font-bold">Despezi</span>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={toggleTheme} className="text-slate-500">
+            <button onClick={toggleTheme} className="text-slate-500 min-h-11 min-w-11 flex items-center justify-center" aria-label={resolvedTheme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>
               {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <button onClick={logout} className="text-slate-500 hover:text-red-500">
+            <button onClick={logout} className="text-slate-500 hover:text-red-500 min-h-11 min-w-11 flex items-center justify-center" aria-label="Sair da conta">
               <LogOut size={20} />
             </button>
           </div>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+        <main className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8 lg:pb-8 relative scroll-pt-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -149,7 +152,7 @@ export default function Layout() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="min-h-full pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"
             >
               <Outlet />
             </motion.div>
@@ -158,9 +161,9 @@ export default function Layout() {
       </div>
 
       {/* Bottom Navigation Bar (Mobile) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 pb-safe z-50 h-16">
+      <nav aria-label="Navegação principal" className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 z-50 h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item, idx) => {
-          const isActive = location.pathname === item.path;
+          const isActive = isNavItemActive(item.path);
           const Icon = item.icon;
           
           // Insert Quick Add FAB in the middle
@@ -168,15 +171,18 @@ export default function Layout() {
             return (
               <React.Fragment key="quick-add">
                 <button 
-                  className="relative -top-5 bg-primary text-slate-900 p-4 rounded-full shadow-lg shadow-primary/30 transform transition-transform active:scale-95"
+                  className="relative -top-3 bg-primary text-slate-900 w-11 h-11 shrink-0 flex items-center justify-center rounded-full shadow-lg shadow-primary/30 transform transition-transform active:scale-95"
                   onClick={() => window.dispatchEvent(new CustomEvent('open-quick-add'))}
+                  aria-label="Abrir formulário de nova transação"
+                  title="Nova transação"
                 >
-                  <Plus size={24} className="font-bold" />
+                  <Plus size={22} className="font-bold" />
                 </button>
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex flex-col items-center justify-center w-16 h-full gap-1 ${
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`min-w-0 flex-1 flex flex-col items-center justify-center h-full gap-1 ${
                     isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
@@ -191,7 +197,8 @@ export default function Layout() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 relative ${
+              aria-current={isActive ? 'page' : undefined}
+              className={`min-w-0 flex-1 flex flex-col items-center justify-center h-full gap-1 relative ${
                 isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400'
               }`}
             >

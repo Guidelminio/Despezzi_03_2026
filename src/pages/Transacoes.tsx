@@ -4,6 +4,9 @@ import { TrendingUp, TrendingDown, Trash2, Filter, ArrowUpDown, Inbox, Download 
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import { motion } from 'motion/react';
+import { categoryLabel, PAYMENT_METHODS } from '../data/categories';
+import { buildPtBrCsv } from '../utils/csv';
+import { formatIsoDate, localTodayIsoDate } from '../utils/financialDates';
 
 export default function Transactions() {
   const { token } = useAuth();
@@ -70,12 +73,7 @@ export default function Transactions() {
   };
 
   const formatMethod = (method: string) => {
-    const methods: Record<string, string> = {
-      credit_card: 'Cartão de Crédito',
-      debit_card: 'Débito',
-      cash: 'Dinheiro',
-      pix: 'Pix'
-    };
+    const methods: Record<string, string> = Object.fromEntries(PAYMENT_METHODS.map(({ id, label }) => [id, label]));
     return methods[method] || method;
   };
 
@@ -83,8 +81,8 @@ export default function Transactions() {
 
   const filteredAndSortedTransactions = transactions
     .filter(t => {
-      if (startDate && new Date(t.date) < new Date(startDate)) return false;
-      if (endDate && new Date(t.date) > new Date(endDate)) return false;
+      if (startDate && t.date < startDate) return false;
+      if (endDate && t.date > endDate) return false;
       if (category && t.category !== category) return false;
       if (type && t.type !== type) return false;
       return true;
@@ -92,7 +90,7 @@ export default function Transactions() {
     .sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+        comparison = a.date.localeCompare(b.date);
       } else if (sortBy === 'amount') {
         comparison = a.amount - b.amount;
       }
@@ -105,30 +103,26 @@ export default function Transactions() {
       return;
     }
 
-    const headers = ['Data', 'Descrição', 'Categoria', 'Tipo', 'Método de Pagamento', 'Valor'];
-    const csvRows = [headers.join(',')];
-
-    filteredAndSortedTransactions.forEach(t => {
-      const date = new Date(t.date).toLocaleDateString('pt-BR');
-      const description = `"${t.description.replace(/"/g, '""')}"`;
-      const category = `"${t.category}"`;
-      const typeStr = t.type === 'income' ? 'Receita' : 'Despesa';
-      const method = `"${formatMethod(t.payment_method)}"`;
-      const amount = t.amount.toString().replace('.', ',');
-
-      csvRows.push([date, description, category, typeStr, method, amount].join(','));
-    });
-
-    const csvString = csvRows.join('\n');
-    // Add BOM so Excel reads UTF-8 correctly
-    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const csvRows: Array<Array<string | number>> = [
+      ['Data', 'Descrição', 'Categoria', 'Tipo', 'Método de Pagamento', 'Valor (R$)'],
+      ...filteredAndSortedTransactions.map((t) => [
+        formatIsoDate(t.date),
+        t.description,
+        categoryLabel(t.category),
+        t.type === 'income' ? 'Receita' : 'Despesa',
+        formatMethod(t.payment_method),
+        t.amount.toFixed(2).replace('.', ','),
+      ]),
+    ];
+    const blob = new Blob([buildPtBrCsv(csvRows)], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `transacoes_despezi_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `transacoes_despezi_${localTodayIsoDate()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
     
     toast.success('Relatório exportado com sucesso!');
   };
@@ -174,11 +168,11 @@ export default function Transactions() {
             <select 
               value={category} 
               onChange={e => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 capitalize"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Todas</option>
               {categories.map(c => (
-                <option key={c as string} value={c as string}>{c as string}</option>
+                <option key={c as string} value={c as string}>{categoryLabel(String(c))}</option>
               ))}
             </select>
           </div>
@@ -258,7 +252,7 @@ export default function Transactions() {
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                      {new Date(t.date).toLocaleDateString('pt-BR')}
+                      {formatIsoDate(t.date)}
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-2">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
@@ -268,7 +262,7 @@ export default function Transactions() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 capitalize">
-                        {t.category}
+                        {categoryLabel(t.category)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500">
@@ -278,7 +272,7 @@ export default function Transactions() {
                       {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => setTransactionToDelete(t.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1">
+                      <button onClick={() => setTransactionToDelete(t.id)} className="text-slate-400 hover:text-red-500 transition-colors min-h-11 min-w-11 inline-flex items-center justify-center" aria-label={`Excluir transação: ${t.description}`} title="Excluir transação">
                         <Trash2 size={18} />
                       </button>
                     </td>

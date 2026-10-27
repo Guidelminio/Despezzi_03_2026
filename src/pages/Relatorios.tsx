@@ -4,6 +4,9 @@ import { PieChart, BarChart, Activity, DollarSign, TrendingUp, TrendingDown, Dow
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { categoryLabel } from '../data/categories';
+import { buildPtBrCsv } from '../utils/csv';
+import { localTodayIsoDate } from '../utils/financialDates';
 
 export default function Reports() {
   const { token, user } = useAuth();
@@ -31,6 +34,9 @@ export default function Reports() {
 
   const categoryData = stats?.categoryExpenses ? Object.entries(stats.categoryExpenses).sort((a: any, b: any) => b[1] - a[1]) : [];
   const maxCategoryValue = categoryData.length > 0 ? (categoryData[0] as any)[1] : 1;
+  const monthlyChartData = Array.isArray(stats?.monthlyChartData) ? stats.monthlyChartData : [];
+  const hasMonthlyData = monthlyChartData.some((item: any) => Number(item.income) > 0 || Number(item.expense) > 0);
+  const maxMonthlyValue = Math.max(1, ...monthlyChartData.map((item: any) => Number(item.income) || 0), ...monthlyChartData.map((item: any) => Number(item.expense) || 0));
 
   const exportToPDF = () => {
     if (!stats) {
@@ -60,7 +66,7 @@ export default function Reports() {
 
     autoTable(doc, {
       startY: 58,
-      head: [['Saldo Total', 'Total Receitas', 'Total Despesas']],
+      head: [['Saldo acumulado', 'Total Receitas', 'Total Despesas']],
       body: [[
         formatCurrency(stats.balance),
         formatCurrency(stats.totalIncome),
@@ -79,7 +85,7 @@ export default function Reports() {
     autoTable(doc, {
       startY: finalY1 + 20,
       head: [['Categoria', 'Valor Total']],
-      body: categoryData.map(([cat, val]: any) => [cat.charAt(0).toUpperCase() + cat.slice(1), formatCurrency(val)]),
+      body: categoryData.map(([cat, val]: any) => [categoryLabel(String(cat)), formatCurrency(Number(val))]),
       theme: 'striped',
       headStyles: { fillColor: [30, 41, 59] },
       styles: { fontSize: 10 }
@@ -116,7 +122,7 @@ export default function Reports() {
       }
     }
 
-    doc.save(`relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`relatorio_financeiro_${localTodayIsoDate()}.pdf`);
     toast.success('Relatório PDF gerado com sucesso!');
   };
 
@@ -126,51 +132,30 @@ export default function Reports() {
       return;
     }
 
-    const csvRows = [];
-    
-    // Resumo Geral
-    csvRows.push('RESUMO GERAL');
-    csvRows.push('Saldo Total,Total Receitas,Total Despesas');
-    csvRows.push([
-      stats.balance.toString().replace('.', ','),
-      stats.totalIncome.toString().replace('.', ','),
-      stats.totalExpense.toString().replace('.', ',')
-    ].join(','));
-    
-    csvRows.push(''); // Linha em branco
-    
-    // Despesas por Categoria
-    csvRows.push('DESPESAS POR CATEGORIA');
-    csvRows.push('Categoria,Valor Total');
-    categoryData.forEach(([category, amount]: any) => {
-      csvRows.push(`"${category}",${amount.toString().replace('.', ',')}`);
-    });
-    
-    csvRows.push(''); // Linha em branco
-    
-    // Evolução Mensal
-    if (stats.monthlyChartData && stats.monthlyChartData.length > 0) {
-      csvRows.push('EVOLUÇÃO MENSAL (Últimos 6 meses)');
-      csvRows.push('Mês,Receitas,Despesas,Saldo Líquido');
-      stats.monthlyChartData.forEach((data: any) => {
-        csvRows.push([
-          `"${data.name}"`,
-          data.income.toString().replace('.', ','),
-          data.expense.toString().replace('.', ','),
-          data.value.toString().replace('.', ',')
-        ].join(','));
-      });
-    }
+    const rows: Array<Array<string | number | null>> = [
+      ['RESUMO GERAL'],
+      ['Escopo', 'Todo o histórico de lançamentos concluídos'],
+      ['Saldo acumulado', 'Total de receitas', 'Total de despesas'],
+      [formatCurrency(stats.balance), formatCurrency(stats.totalIncome), formatCurrency(stats.totalExpense)],
+      [],
+      ['DESPESAS POR CATEGORIA', 'Todo o histórico de lançamentos concluídos'],
+      ['Categoria', 'Valor total'],
+      ...categoryData.map(([category, amount]: any) => [categoryLabel(String(category)), formatCurrency(Number(amount))]),
+      [],
+      ['EVOLUÇÃO MENSAL', 'Últimas seis competências'],
+      ['Mês', 'Receitas', 'Despesas', 'Saldo líquido'],
+      ...monthlyChartData.map((data: any) => [data.name, formatCurrency(data.income), formatCurrency(data.expense), formatCurrency(data.value)]),
+    ];
 
-    const csvString = csvRows.join('\n');
-    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([buildPtBrCsv(rows)], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `resumo_financeiro_despezi_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `resumo_financeiro_despezi_${localTodayIsoDate()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
     
     toast.success('Resumo exportado com sucesso!');
   };
@@ -207,7 +192,7 @@ export default function Reports() {
               <DollarSign size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Saldo Total</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Saldo acumulado</p>
               <h3 className="text-2xl font-bold">{formatCurrency(stats?.balance || 0)}</h3>
             </div>
           </div>
@@ -243,6 +228,7 @@ export default function Reports() {
             <PieChart className="text-primary" size={20} />
             <h3 className="text-lg font-bold">Despesas por Categoria</h3>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 -mt-4 mb-5">Todo o histórico de lançamentos concluídos.</p>
           
           <div className="space-y-4">
             {categoryData.length === 0 ? (
@@ -251,10 +237,17 @@ export default function Reports() {
               categoryData.map(([category, amount]: any) => (
                 <div key={category}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="capitalize font-medium">{category}</span>
+                    <span className="font-medium">{categoryLabel(String(category))}</span>
                     <span className="text-slate-500">{formatCurrency(amount)}</span>
                   </div>
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5">
+                  <div
+                    className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5"
+                    role="progressbar"
+                    aria-label={`Despesas de ${categoryLabel(String(category))}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(maxCategoryValue > 0 ? (Number(amount) / maxCategoryValue) * 100 : 0)}
+                  >
                     <div 
                       className="bg-primary h-2.5 rounded-full" 
                       style={{ width: `${(amount / maxCategoryValue) * 100}%` }}
@@ -274,22 +267,20 @@ export default function Reports() {
           </div>
           
           <div className="space-y-4">
-            {!Array.isArray(stats?.monthlyChartData) || stats.monthlyChartData.length === 0 ? (
-              <p className="text-slate-500 text-center py-4">Dados insuficientes.</p>
+            {!hasMonthlyData ? (
+              <p className="text-slate-500 text-center py-4">Não há receitas ou despesas concluídas nas últimas seis competências.</p>
             ) : (
-              <div className="flex h-64 items-end gap-2">
-                {stats.monthlyChartData.map((data: any, index: number) => {
-                  // Calculate max value for scaling
-                  const maxVal = Math.max(...stats.monthlyChartData.map((d: any) => Math.max(d.income, d.expense, 1)));
-                  const incomeHeight = (data.income / maxVal) * 100;
-                  const expenseHeight = (data.expense / maxVal) * 100;
+              <div className="flex h-64 items-end gap-2" role="img" aria-label="Comparação mensal de receitas e despesas concluídas nas últimas seis competências">
+                {monthlyChartData.map((data: any, index: number) => {
+                  const incomeHeight = (data.income / maxMonthlyValue) * 100;
+                  const expenseHeight = (data.expense / maxMonthlyValue) * 100;
                   
                   return (
-                    <div key={index} className="flex-1 flex flex-col items-center justify-end h-full gap-2 group relative">
-                      {/* Tooltip */}
-                      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 pointer-events-none z-10 whitespace-nowrap">
-                        <p className="text-green-400">R: {formatCurrency(data.income)}</p>
-                        <p className="text-red-400">D: {formatCurrency(data.expense)}</p>
+                      <div key={data.monthKey || index} className="min-w-0 flex-1 flex flex-col items-center justify-end h-full gap-2 group relative" title={`${data.name}: receitas ${formatCurrency(data.income)}; despesas ${formatCurrency(data.expense)}`}>
+                        {/* Tooltip */}
+                      <div className="hidden xl:block absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 pointer-events-none z-10 whitespace-nowrap">
+                        <p className="text-green-400">Receitas: {formatCurrency(data.income)}</p>
+                        <p className="text-red-400">Despesas: {formatCurrency(data.expense)}</p>
                       </div>
                       
                       <div className="w-full flex justify-center gap-1 items-end h-full">
@@ -302,7 +293,10 @@ export default function Reports() {
                           style={{ height: `${expenseHeight}%`, minHeight: data.expense > 0 ? '4px' : '0' }}
                         ></div>
                       </div>
-                      <span className="text-xs text-slate-500 font-medium">{data.name}</span>
+                      <span className="text-[10px] sm:text-xs text-slate-500 font-medium whitespace-nowrap" aria-label={data.name}>
+                        <span className="sm:hidden">{data.name.split('/')[0]}</span>
+                        <span className="hidden sm:inline">{data.name}</span>
+                      </span>
                     </div>
                   );
                 })}

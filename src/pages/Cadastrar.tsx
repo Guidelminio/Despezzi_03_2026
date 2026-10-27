@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPassword } from '../utils/passwordPolicy';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -11,16 +12,18 @@ export default function Register() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [authWindow, setAuthWindow] = useState<Window | null>(null);
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+      if (origin !== window.location.origin || event.source !== authWindow) {
         return;
       }
+      setAuthWindow(null);
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
         const token = event.data.token;
-        if (token) {
+        if (typeof token === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) {
           try {
             const res = await fetch('/api/auth/me', {
               headers: { Authorization: `Bearer ${token}` }
@@ -40,30 +43,29 @@ export default function Register() {
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [login, navigate]);
+  }, [authWindow, login, navigate]);
 
   const handleGoogleLogin = async () => {
+    const popup = window.open('about:blank', 'oauth_popup', 'width=600,height=700');
+    if (!popup) {
+      toast.error('Por favor, permita popups para fazer login com o Google.');
+      return;
+    }
+    setAuthWindow(popup);
     try {
       const response = await fetch('/api/auth/google/url');
       if (!response.ok) throw new Error('Failed to get auth URL');
       const { url } = await response.json();
-
-      const authWindow = window.open(url, 'oauth_popup', 'width=600,height=700');
-      if (!authWindow) {
-        toast.error('Por favor, permita popups para fazer login com o Google.');
-      }
+      popup.location.href = url;
     } catch (error) {
+      popup.close();
+      setAuthWindow(null);
       toast.error('Erro ao iniciar login com Google.');
     }
   };
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const validatePassword = (pass: string) => {
-    // Pelo menos 8 caracteres, uma letra e um número
-    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,8 +82,8 @@ export default function Register() {
       return;
     }
 
-    if (!validatePassword(password)) {
-      setError('A senha deve ter pelo menos 8 caracteres, incluindo pelo menos uma letra e um número.');
+    if (!isValidPassword(password)) {
+      setError('A senha deve ter entre 8 e 128 caracteres.');
       return;
     }
 
@@ -144,10 +146,12 @@ export default function Register() {
             <input
               type="password"
               required
+              minLength={8}
+              maxLength={128}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-background-light dark:bg-background-dark border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none"
-              placeholder="********"
+              placeholder="Mínimo 8 caracteres"
             />
           </div>
           <button type="submit" className="w-full py-3 rounded-lg bg-primary hover:bg-primary-hover text-slate-900 font-bold transition-colors mt-2">

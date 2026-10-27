@@ -1,0 +1,485 @@
+{
+  "generatedAt": "2026-10-22T19:52:16.135Z",
+  "viewports": [
+    {
+      "name": "mobile-320",
+      "width": 320,
+      "height": 720
+    },
+    {
+      "name": "mobile-375",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "name": "tablet-768",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "name": "desktop-1365",
+      "width": 1365,
+      "height": 900
+    }
+  ],
+  "routes": [
+    {
+      "name": "dashboard",
+      "path": "/dashboard"
+    },
+    {
+      "name": "transactions",
+      "path": "/transactions"
+    },
+    {
+      "name": "budget",
+      "path": "/goals"
+    },
+    {
+      "name": "savings-goals",
+      "path": "/savings-goals"
+    },
+    {
+      "name": "reports",
+      "path": "/reports"
+    }
+  ],
+  "caseCount": 20,
+  "overflowCases": [],
+  "dashboardKpiOrderErrors": [],
+  "keyboard": {
+    "found": true,
+    "label": "Excluir transação: Mercado fictício",
+    "dialogOpen": true,
+    "escapeClosed": true,
+    "focusReturned": true,
+    "activeTag": "BUTTON"
+  },
+  "measurements": [
+    {
+      "viewport": "mobile-320",
+      "route": "/dashboard",
+      "viewportWidth": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "horizontalOverflow": false,
+      "mainClientWidth": 320,
+      "mainScrollWidth": 320,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 1395,
+        "bottomPadding": "80px",
+        "mainBottom": 720,
+        "navTop": 656,
+        "lastFocusableBottom": 615
+      }
+    },
+    {
+      "viewport": "mobile-320",
+      "route": "/transactions",
+      "viewportWidth": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "horizontalOverflow": false,
+      "mainClientWidth": 320,
+      "mainScrollWidth": 320,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 233,
+        "bottomPadding": "80px",
+        "mainBottom": 720,
+        "navTop": 656,
+        "lastFocusableBottom": 623
+      }
+    },
+    {
+      "viewport": "mobile-320",
+      "route": "/goals",
+      "viewportWidth": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "horizontalOverflow": false,
+      "mainClientWidth": 320,
+      "mainScrollWidth": 320,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Limites de gastos",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 0,
+        "bottomPadding": "80px",
+        "mainBottom": 720,
+        "navTop": 656,
+        "lastFocusableBottom": 430
+      }
+    },
+    {
+      "viewport": "mobile-320",
+      "route": "/savings-goals",
+      "viewportWidth": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "horizontalOverflow": false,
+      "mainClientWidth": 320,
+      "mainScrollWidth": 320,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Objetivos de poupança",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 1009,
+        "bottomPadding": "80px",
+        "mainBottom": 720,
+        "navTop": 656,
+        "lastFocusableBottom": -29
+      }
+    },
+    {
+      "viewport": "mobile-320",
+      "route": "/reports",
+      "viewportWidth": 320,
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "horizontalOverflow": false,
+      "mainClientWidth": 320,
+      "mainScrollWidth": 320,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 627,
+        "bottomPadding": "80px",
+        "mainBottom": 720,
+        "navTop": 656,
+        "lastFocusableBottom": -384
+      }
+    },
+    {
+      "viewport": "mobile-375",
+      "route": "/dashboard",
+      "viewportWidth": 375,
+      "documentWidth": 375,
+      "bodyWidth": 375,
+      "horizontalOverflow": false,
+      "mainClientWidth": 375,
+      "mainScrollWidth": 375,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 1071,
+        "bottomPadding": "80px",
+        "mainBottom": 812,
+        "navTop": 748,
+        "lastFocusableBottom": 707
+      }
+    },
+    {
+      "viewport": "mobile-375",
+      "route": "/transactions",
+      "viewportWidth": 375,
+      "documentWidth": 375,
+      "bodyWidth": 375,
+      "horizontalOverflow": false,
+      "mainClientWidth": 375,
+      "mainScrollWidth": 375,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 141,
+        "bottomPadding": "80px",
+        "mainBottom": 812,
+        "navTop": 748,
+        "lastFocusableBottom": 715
+      }
+    },
+    {
+      "viewport": "mobile-375",
+      "route": "/goals",
+      "viewportWidth": 375,
+      "documentWidth": 375,
+      "bodyWidth": 375,
+      "horizontalOverflow": false,
+      "mainClientWidth": 375,
+      "mainScrollWidth": 375,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Limites de gastos",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 0,
+        "bottomPadding": "80px",
+        "mainBottom": 812,
+        "navTop": 748,
+        "lastFocusableBottom": 398
+      }
+    },
+    {
+      "viewport": "mobile-375",
+      "route": "/savings-goals",
+      "viewportWidth": 375,
+      "documentWidth": 375,
+      "bodyWidth": 375,
+      "horizontalOverflow": false,
+      "mainClientWidth": 375,
+      "mainScrollWidth": 375,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Objetivos de poupança",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 825,
+        "bottomPadding": "80px",
+        "mainBottom": 812,
+        "navTop": 748,
+        "lastFocusableBottom": 119
+      }
+    },
+    {
+      "viewport": "mobile-375",
+      "route": "/reports",
+      "viewportWidth": 375,
+      "documentWidth": 375,
+      "bodyWidth": 375,
+      "horizontalOverflow": false,
+      "mainClientWidth": 375,
+      "mainScrollWidth": 375,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 491,
+        "bottomPadding": "80px",
+        "mainBottom": 812,
+        "navTop": 748,
+        "lastFocusableBottom": -292
+      }
+    },
+    {
+      "viewport": "tablet-768",
+      "route": "/dashboard",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "bodyWidth": 768,
+      "horizontalOverflow": false,
+      "mainClientWidth": 768,
+      "mainScrollWidth": 768,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 417,
+        "bottomPadding": "80px",
+        "mainBottom": 1024,
+        "navTop": 960,
+        "lastFocusableBottom": 919
+      }
+    },
+    {
+      "viewport": "tablet-768",
+      "route": "/transactions",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "bodyWidth": 768,
+      "horizontalOverflow": false,
+      "mainClientWidth": 768,
+      "mainScrollWidth": 768,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 0,
+        "bottomPadding": "80px",
+        "mainBottom": 1024,
+        "navTop": 960,
+        "lastFocusableBottom": 504
+      }
+    },
+    {
+      "viewport": "tablet-768",
+      "route": "/goals",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "bodyWidth": 768,
+      "horizontalOverflow": false,
+      "mainClientWidth": 768,
+      "mainScrollWidth": 768,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Limites de gastos",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 0,
+        "bottomPadding": "80px",
+        "mainBottom": 1024,
+        "navTop": 960,
+        "lastFocusableBottom": 338
+      }
+    },
+    {
+      "viewport": "tablet-768",
+      "route": "/savings-goals",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "bodyWidth": 768,
+      "horizontalOverflow": false,
+      "mainClientWidth": 768,
+      "mainScrollWidth": 768,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Objetivos de poupança",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 143,
+        "bottomPadding": "80px",
+        "mainBottom": 1024,
+        "navTop": 960,
+        "lastFocusableBottom": 437
+      }
+    },
+    {
+      "viewport": "tablet-768",
+      "route": "/reports",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "bodyWidth": 768,
+      "horizontalOverflow": false,
+      "mainClientWidth": 768,
+      "mainScrollWidth": 768,
+      "sidebarDisplay": "none",
+      "bottomNavDisplay": "flex",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "0px",
+      "bottomScroll": {
+        "maxScrollTop": 0,
+        "bottomPadding": "80px",
+        "mainBottom": 1024,
+        "navTop": 960,
+        "lastFocusableBottom": 148
+      }
+    },
+    {
+      "viewport": "desktop-1365",
+      "route": "/dashboard",
+      "viewportWidth": 1365,
+      "documentWidth": 1365,
+      "bodyWidth": 1365,
+      "horizontalOverflow": false,
+      "mainClientWidth": 1094,
+      "mainScrollWidth": 1094,
+      "sidebarDisplay": "flex",
+      "bottomNavDisplay": "none",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "32px"
+    },
+    {
+      "viewport": "desktop-1365",
+      "route": "/transactions",
+      "viewportWidth": 1365,
+      "documentWidth": 1365,
+      "bodyWidth": 1365,
+      "horizontalOverflow": false,
+      "mainClientWidth": 1109,
+      "mainScrollWidth": 1109,
+      "sidebarDisplay": "flex",
+      "bottomNavDisplay": "none",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "32px"
+    },
+    {
+      "viewport": "desktop-1365",
+      "route": "/goals",
+      "viewportWidth": 1365,
+      "documentWidth": 1365,
+      "bodyWidth": 1365,
+      "horizontalOverflow": false,
+      "mainClientWidth": 1109,
+      "mainScrollWidth": 1109,
+      "sidebarDisplay": "flex",
+      "bottomNavDisplay": "none",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Limites de gastos",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "32px"
+    },
+    {
+      "viewport": "desktop-1365",
+      "route": "/savings-goals",
+      "viewportWidth": 1365,
+      "documentWidth": 1365,
+      "bodyWidth": 1365,
+      "horizontalOverflow": false,
+      "mainClientWidth": 1109,
+      "mainScrollWidth": 1109,
+      "sidebarDisplay": "flex",
+      "bottomNavDisplay": "none",
+      "planningTabCount": 2,
+      "planningCurrentTab": "Objetivos de poupança",
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "32px"
+    },
+    {
+      "viewport": "desktop-1365",
+      "route": "/reports",
+      "viewportWidth": 1365,
+      "documentWidth": 1365,
+      "bodyWidth": 1365,
+      "horizontalOverflow": false,
+      "mainClientWidth": 1109,
+      "mainScrollWidth": 1109,
+      "sidebarDisplay": "flex",
+      "bottomNavDisplay": "none",
+      "planningTabCount": 0,
+      "planningCurrentTab": null,
+      "kpisBeforeInsights": true,
+      "mainBottomPadding": "32px"
+    }
+  ]
+}

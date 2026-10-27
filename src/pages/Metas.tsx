@@ -3,7 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { Target, Plus, Trash2, AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import PlanningTabs from '../components/PlanningTabs';
 import { motion } from 'motion/react';
+import { EXPENSE_CATEGORIES } from '../data/categories';
 
 export default function Goals() {
   const { token } = useAuth();
@@ -18,15 +20,7 @@ export default function Goals() {
   // Modal state
   const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
 
-  const categories = [
-    { id: 'alimentacao', label: 'Alimentação' },
-    { id: 'transporte', label: 'Transporte' },
-    { id: 'moradia', label: 'Moradia' },
-    { id: 'lazer', label: 'Lazer' },
-    { id: 'saude', label: 'Saúde' },
-    { id: 'educacao', label: 'Educação' },
-    { id: 'outros', label: 'Outros' }
-  ];
+  const categories = EXPENSE_CATEGORIES;
 
   const fetchData = async () => {
     try {
@@ -54,8 +48,9 @@ export default function Goals() {
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAmount || isNaN(Number(newAmount))) {
-      toast.error('Valor inválido.');
+    const amount = Number(newAmount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-7) {
+      toast.error('Informe um limite positivo com no máximo duas casas decimais.');
       return;
     }
 
@@ -68,17 +63,17 @@ export default function Goals() {
         },
         body: JSON.stringify({
           category: newCategory,
-          amount: Number(newAmount)
+          amount
         })
       });
 
       if (res.ok) {
-        toast.success('Meta salva com sucesso!');
+        toast.success('Limite salvo com sucesso!');
         setIsAdding(false);
         setNewAmount('');
         fetchData();
       } else {
-        toast.error('Erro ao salvar meta.');
+        toast.error('Erro ao salvar limite.');
       }
     } catch (error) {
       console.error('Error saving goal:', error);
@@ -96,7 +91,7 @@ export default function Goals() {
       });
 
       if (res.ok) {
-        toast.success('Meta removida com sucesso!');
+        toast.success('Limite removido com sucesso!');
         fetchData();
       } else {
         toast.error('Erro ao remover meta.');
@@ -121,17 +116,21 @@ export default function Goals() {
     <div className="max-w-4xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Metas de Gastos</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Limites mensais por categoria</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm">Defina limites mensais por categoria e acompanhe seu progresso.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-slate-900 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm shadow-primary/20"
-        >
-          <Plus size={18} />
-          {isAdding ? 'Cancelar' : 'Nova Meta'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-slate-900 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm shadow-primary/20"
+          >
+            <Plus size={18} />
+            {isAdding ? 'Cancelar' : 'Novo limite'}
+          </button>
+        </div>
       </header>
+
+      <PlanningTabs />
 
       {isAdding && (
         <motion.div 
@@ -139,7 +138,7 @@ export default function Goals() {
           animate={{ opacity: 1, height: 'auto' }}
           className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-hidden"
         >
-          <h3 className="text-lg font-bold mb-4">Adicionar ou Atualizar Meta</h3>
+          <h3 className="text-lg font-bold mb-4">Adicionar ou atualizar limite mensal</h3>
           <form onSubmit={handleSaveGoal} className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
@@ -158,7 +157,7 @@ export default function Goals() {
               <input 
                 type="number" 
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
                 placeholder="Ex: 500.00"
@@ -170,7 +169,7 @@ export default function Goals() {
               type="submit"
               className="w-full md:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
             >
-              Salvar Meta
+              Salvar limite
             </button>
           </form>
         </motion.div>
@@ -182,26 +181,26 @@ export default function Goals() {
             <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 text-slate-400">
               <Target size={40} className="text-slate-400 dark:text-slate-500" />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-slate-100">Nenhuma meta definida</h3>
-            <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">Crie metas para controlar seus gastos mensais por categoria e receba alertas quando estiver perto do limite.</p>
+            <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-slate-100">Nenhum limite definido</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">Defina limites para controlar seus gastos mensais por categoria e acompanhe avisos quando estiver perto ou acima deles.</p>
             <button 
               onClick={() => setIsAdding(true)}
               className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-6 py-3 rounded-lg text-sm font-bold transition-colors"
             >
               <Plus size={18} />
-              Criar Primeira Meta
+              Criar primeiro limite
             </button>
           </div>
         ) : (
           goals.map((goal, index) => {
             const categoryLabel = categories.find(c => c.id === goal.category)?.label || goal.category;
             const spent = currentMonthExpenses[goal.category] || 0;
-            const percentage = Math.min((spent / goal.amount) * 100, 100);
+            const percentage = goal.amount > 0 ? Math.min((spent / goal.amount) * 100, 100) : 0;
             
             let statusColor = 'bg-green-500';
             let textColor = 'text-green-600 dark:text-green-400';
             let StatusIcon = CheckCircle2;
-            let statusText = 'Dentro da meta';
+            let statusText = 'Dentro do limite';
             let isExceeded = false;
             let isPerfect = false;
             
@@ -209,17 +208,17 @@ export default function Goals() {
               statusColor = 'bg-red-500';
               textColor = 'text-red-600 dark:text-red-400';
               StatusIcon = AlertTriangle;
-              statusText = 'Meta excedida!';
+              statusText = 'Limite excedido!';
               isExceeded = true;
             } else if (percentage >= 80) {
               statusColor = 'bg-yellow-500';
               textColor = 'text-yellow-600 dark:text-yellow-400';
               StatusIcon = AlertTriangle;
-              statusText = 'Atenção: Próximo ao limite';
+              statusText = 'Atenção: próximo ao limite';
             } else if (percentage < 30 && spent > 0) {
               isPerfect = true;
               StatusIcon = PartyPopper;
-              statusText = 'Excelente economia!';
+              statusText = 'Abaixo do limite';
             }
 
             return (
@@ -246,6 +245,7 @@ export default function Goals() {
                     onClick={() => setGoalToDelete(goal.category)}
                     className="text-slate-400 hover:text-red-500 transition-colors p-2"
                     title="Remover Meta"
+                    aria-label={`Remover limite de ${categoryLabel}`}
                   >
                     <Trash2 size={18} />
                   </button>
@@ -253,7 +253,7 @@ export default function Goals() {
                 
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-500 font-medium">Gasto: {formatCurrency(spent)}</span>
-                  <span className="text-slate-500 font-medium">Meta: {formatCurrency(goal.amount)}</span>
+                  <span className="text-slate-500 font-medium">Limite: {formatCurrency(goal.amount)}</span>
                 </div>
                 
                 <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-1 overflow-hidden">
@@ -277,8 +277,8 @@ export default function Goals() {
         isOpen={goalToDelete !== null}
         onClose={() => setGoalToDelete(null)}
         onConfirm={handleDeleteGoal}
-        title="Remover Meta"
-        message="Tem certeza que deseja remover esta meta? Você deixará de receber alertas para esta categoria."
+        title="Remover limite"
+        message="Tem certeza que deseja remover este limite mensal? Os avisos desta categoria deixarão de ser exibidos."
         confirmText="Remover"
       />
     </div>
